@@ -5,6 +5,8 @@ def create_event_tool():
 def delete_event_tool():
     pass
 
+def edit_event_tool():
+    pass
 
 def get_all_events_tool():
     pass

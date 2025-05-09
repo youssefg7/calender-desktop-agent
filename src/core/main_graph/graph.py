@@ -9,7 +9,7 @@ from .conditional_edges import continue_with_validator_decision, continue_with_t
 from .states import InputState, OutputState, OverallState
 from .agents import validate_user_input, main_agent
 from langgraph.prebuilt import ToolNode
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool
+from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool, edit_event_tool
 app_settings = get_settings()
 
 
@@ -23,7 +23,8 @@ builder.add_node("tools", ToolNode([
     create_event_tool, 
     delete_event_tool,
     get_all_events_tool, 
-    reorder_events_tool
+    reorder_events_tool,
+    edit_event_tool
     ], messages_key="main_agent_messages"))
 
 # Edges
@@ -48,9 +49,9 @@ builder.add_edge("tools", "main_agent")
 
 builder.add_edge("main_agent", END)
 
-# graph_image = builder.compile().get_graph().draw_mermaid_png()
-# with open("graph.png", "wb") as f:
-#     f.write(graph_image)
+graph_image = builder.compile().get_graph().draw_mermaid_png()
+with open("graph.png", "wb") as f:
+    f.write(graph_image)
 
 
 def compile_graph(checkpointer):
