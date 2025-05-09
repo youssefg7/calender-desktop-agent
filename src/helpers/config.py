@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
-    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_MODEL: str = "gpt-4.1-mini"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_LENGTH: int = 1536
     PG_VECTOR_DB_URL: str = ""
@@ -26,10 +26,6 @@ class Settings(BaseSettings):
     LANGFUSE_SK: str = ""
     LANGFUSE_HOST: str = ""
 
-    FRONTEND_BASE_URL: str = "http://localhost:8501"
-
-    DIGITAL_SIGNATURE_ENABLED: bool = True
-    QR_CODE_ENABLED: bool = False
 
     model_config = ConfigDict(
         env_file=".env" if os.getenv("ENVIRONMENT") != "production" else None,

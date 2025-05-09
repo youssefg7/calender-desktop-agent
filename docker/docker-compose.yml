@@ -21,7 +21,5 @@ services:
       POSTGRES_DB: ${LANGFUSE_DB}
     ports:
       - "5432:5432"
-    volumes:
-      - ./init/init-db.sql:/docker-entrypoint-initdb.d/init.sql  # Initialization script
     profiles:
       - dev
