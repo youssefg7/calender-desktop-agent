@@ -16,7 +16,7 @@ async def welcome():
     """
 
     return {
-        "message": "Welcome to the AStudio Simple Customer Support Agent API",
-        "app_name": "Simple Customer Support Agent",
+        "message": "Welcome to the calendar agent",
+        "app_name": "Simple Calender Agent",
         "version": "0.0.1",
     }

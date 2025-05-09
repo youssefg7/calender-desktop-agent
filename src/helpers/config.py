@@ -7,14 +7,14 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
-    LLM_MODEL: str = "gpt-4.1-mini"
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    LLM_MODEL: str = "openai__gpt-4.1-mini"
+    EMBEDDING_MODEL: str = "openai__text-embedding-3-small"
     EMBEDDING_LENGTH: int = 1536
-    PG_VECTOR_DB_URL: str = ""
+    # PG_VECTOR_DB_URL: str = ""
 
-    IS_LOCAL: bool = True
+    # IS_LOCAL: bool = True
 
-    CON_AES_KEY: str = ""
+    # CON_AES_KEY: str = ""
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379

@@ -4,8 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
-from database import LangfuseHandler
+from database import LangfuseHandler, get_redis_saver
 from core.main_graph import compile_graph
+
 from langgraph.checkpoint.memory import InMemorySaver
 from routes.v1 import base, chat
 
@@ -15,8 +16,8 @@ async def lifespan(app: FastAPI):
     try:
         langfuse = LangfuseHandler()
         # await init_db()
-        # async for checkpoiner in get_redis_saver():
-        async for checkpoiner in InMemorySaver():
+        async for checkpoiner in get_redis_saver():
+        # async for checkpoiner in InMemorySaver():
             compile_graph(checkpointer=checkpoiner)
             yield
     finally:

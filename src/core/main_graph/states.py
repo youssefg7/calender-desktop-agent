@@ -9,6 +9,7 @@ class InputState(BaseModel):
     user_message: str
 
 
+
 class OverallState(BaseModel):
     user_message: str
     is_valid_user_input: bool = False
