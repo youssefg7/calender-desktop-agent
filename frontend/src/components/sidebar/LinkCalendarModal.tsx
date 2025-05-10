@@ -1,15 +1,16 @@
-import { Box, Flex, Text, VStack, Icon, Button, Input, HStack, IconButton } from "@chakra-ui/react";
-import { FiX } from "react-icons/fi";
-import { FaGoogle, FaMicrosoft } from "react-icons/fa";
+import { Box, Flex, Text, VStack, Icon, Button, Input, IconButton, Heading } from "@chakra-ui/react";
+import { FiX, FiLink, FiCalendar } from "react-icons/fi";
+import { FaGoogle } from "react-icons/fa";
 
 interface LinkCalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
   calendarName: string;
-  onCalendarNameChange: (name: string) => void;
-  onLinkCalendar: (provider: "google" | "microsoft") => void;
+  onCalendarNameChange: (value: string) => void;
+  onLinkCalendar: () => void;
   bgColor: string;
   textColor: string;
+  borderColor?: string;
 }
 
 export function LinkCalendarModal({
@@ -20,14 +21,15 @@ export function LinkCalendarModal({
   onLinkCalendar,
   bgColor,
   textColor,
+  borderColor = "gray.600",
 }: LinkCalendarModalProps) {
   if (!isOpen) return null;
 
   return (
     <Box
       position="fixed"
-      top="64px"
-      left="252px"
+      top="50px"
+      left="315px"
       right="0"
       bottom="0"
       bg="blackAlpha.700"
@@ -40,87 +42,71 @@ export function LinkCalendarModal({
     >
       <Box
         bg={bgColor}
-        borderRadius="xl"
-        p={6}
-        w="400px"
+        borderRadius="lg"
+        p={4}
+        w="380px"
         onClick={(e) => e.stopPropagation()}
-        boxShadow="2xl"
+        boxShadow="xl"
         border="1px"
         borderColor="gray.700"
         zIndex={21}
       >
-        <Flex justify="space-between" align="center" mb={6}>
-          <Text fontSize="xl" fontWeight="bold" color={textColor}>
-            Link New Calendar
-          </Text>
+        <Flex justify="space-between" align="center" mb={3}>
+          <Flex align="center" gap={2}>
+            <Icon as={FiCalendar} color="blue.400" boxSize="1.2em" />
+            <Heading size="sm" color={textColor}>
+              Link New Calendar Account
+            </Heading>
+          </Flex>
           <IconButton
             aria-label="Close modal"
             variant="ghost"
             color="red.400"
             _hover={{ bg: "red.900", color: "red.200" }}
-            size="sm"
+            size="xs"
             onClick={onClose}
           >
-            <FiX />
+            <FiX size="0.9em" />
           </IconButton>
         </Flex>
 
-        <VStack gap={6}>
-          <Box w="100%" position="relative">
-            <Text mb={2} color={textColor} fontWeight="medium">
-              Calendar Name
-            </Text>
+        <VStack gap={4}>
+          <Box mb={2} w="100%">
+            <Flex align="center" mb={1}>
+              <Icon as={FiLink} mr={1} color="blue.400" boxSize="0.9em" />
+              <Text fontWeight="medium" fontSize="xs" color={textColor}>
+                Account Name
+              </Text>
+            </Flex>
             <Input
-              placeholder="Enter calendar name"
               value={calendarName}
               onChange={(e) => onCalendarNameChange(e.target.value)}
-              size="lg"
+              placeholder="Enter account name"
               variant="outline"
-              bg="gray.800"
-              borderColor="gray.600"
-              _hover={{ borderColor: "gray.500", bg: "gray.700" }}
-              _focus={{ borderColor: "blue.400", bg: "gray.700", boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)" }}
-              color="white"
-              _placeholder={{ color: "gray.400" }}
-              px={4}
-              fontSize="md"
-              h="50px"
-              lineHeight="50px"
+              color={textColor}
+              borderColor={borderColor}
+              _focus={{ borderColor: "blue.400" }}
+              size="sm"
             />
           </Box>
 
-          <HStack gap={4} w="100%">
+          <Box w="100%">
             <Button
               colorScheme="red"
               variant="solid"
-              flex="1"
-              onClick={() => onLinkCalendar("google")}
+              w="100%"
+              onClick={onLinkCalendar}
               disabled={!calendarName.trim()}
-              h="48px"
-              _hover={{ transform: "translateY(-1px)", boxShadow: "lg" }}
+              size="sm"
+              _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
               transition="all 0.2s"
             >
               <Flex align="center" gap={2}>
-                <Icon as={FaGoogle} boxSize={5} />
-                <Text>Google Calendar</Text>
+                <Icon as={FaGoogle} boxSize="0.9em" />
+                <Text fontSize="xs">Google Calendar</Text>
               </Flex>
             </Button>
-            <Button
-              colorScheme="blue"
-              variant="solid"
-              flex="1"
-              onClick={() => onLinkCalendar("microsoft")}
-              disabled={!calendarName.trim()}
-              h="48px"
-              _hover={{ transform: "translateY(-1px)", boxShadow: "lg" }}
-              transition="all 0.2s"
-            >
-              <Flex align="center" gap={2}>
-                <Icon as={FaMicrosoft} boxSize={5} />
-                <Text>Outlook Calendar</Text>
-              </Flex>
-            </Button>
-          </HStack>
+          </Box>
         </VStack>
       </Box>
     </Box>

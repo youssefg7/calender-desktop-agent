@@ -1,4 +1,5 @@
-import { Text } from "@chakra-ui/react";
+import { Flex, Icon, Heading } from "@chakra-ui/react";
+import { FiCalendar } from "react-icons/fi";
 
 interface SidebarTitleProps {
   textColor: string;
@@ -6,8 +7,11 @@ interface SidebarTitleProps {
 
 export function SidebarTitle({ textColor }: SidebarTitleProps) {
   return (
-    <Text fontSize="lg" fontWeight="bold" color={textColor} userSelect="none">
-      Calendars
-    </Text>
+    <Flex align="center" mb={1} gap={2}>
+      <Icon as={FiCalendar} boxSize="1.2em" color="blue.400" />
+      <Heading size="sm" fontWeight="bold" color={textColor} userSelect="none">
+        Calendar Accounts
+      </Heading>
+    </Flex>
   );
 }
