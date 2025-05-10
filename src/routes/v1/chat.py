@@ -98,8 +98,9 @@ async def start_graph_execution(
     ):
         response = {
             "op": "info",
-            "message": update[2],
+            "message": update[1],
         }
+        print(response)
         if response:
             yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
@@ -109,23 +110,6 @@ async def start_graph_execution(
         
 # Extracts the response from the final state
 async def generate_response(final_state: StateSnapshot) -> AsyncGenerator[str, None]:
-    # Follow-up question to the user
-    # if final_state.tasks:
-    #     print("there is a task")
-    #     if "ask_user_data" in final_state.next:
-    #         response = {
-    #             "op": "ask_user_data",
-    #             "message": final_state.values["user_data_messages"][-1].content,
-    #         }
-    #         yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
-    # else:
-    #     # print("no task")
-    #     # Final Report Generated
-    #     response = {
-    #         "op": "final_generated",
-    #         "message": final_state.values["main_agent_messages"][-1].content,
-    #     }
-    #     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
     response = {
         "op": "final_generated",
         "message": final_state.values["main_agent_messages"][-1].content,
@@ -138,15 +122,12 @@ async def followup_graph(
     graph_config: dict,
     graph: CompiledStateGraph,
 ) -> AsyncGenerator[str, None]:
+    response = {
+        "op": "info",
+        "message": "Thinking...",
+    }
+    yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
-    # state = await graph.aget_state(config=graph_config, subgraphs=True)
-    # await graph.aupdate_state(
-    #     config=graph_config,
-    #     values={
-    #         "user_message": user_input,
-    #     },
-    #     # as_node="ask_user_data",
-    # )
     async for update in graph.astream(
         input=InputState(user_message=user_input), config=graph_config, stream_mode=["custom"]
     ):

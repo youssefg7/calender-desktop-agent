@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timezone
+from dateutil import parser as date_parser
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -7,7 +8,10 @@ from google.auth.transport.requests import Request
 import os
 import pickle
 from langgraph.types import StreamWriter
-
+from langchain_core.tools.base import InjectedToolArg
+from typing_extensions import Annotated
+from langchain_core.tools import tool
+import orjson
 # ---- Helper to get Google Calendar service for the user ----
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -61,6 +65,19 @@ def get_user_people_service():
 
 # ---- Tool Functions ----
 
+TOOLS_MESSAGES = {
+    "create_event_tool": "Creating event...📝",
+    "delete_event_tool": "Deleting event...🗑️",
+    "edit_event_tool": "Editing event...✏️",
+    "get_all_events_tool": "Checking your calendar...📅",
+    "get_all_calendar_ids_tool": "Checking your calendars...📆",
+    "search_contacts_by_name_tool": "Searching in your contacts...🔍",
+    "get_event_tool": "Checking your calendar...📅",
+    "find_free_time_tool": "Looking for free time in your calendars...⏰",
+}
+
+
+@tool(parse_docstring=True)
 def create_event_tool(
     summary: str,
     start: str,
@@ -70,11 +87,21 @@ def create_event_tool(
     location: Optional[str] = None,
     color_id: Optional[str] = None,
     attendees: Optional[List[str]] = None,
-    recurrence: Optional[str] = None
+    recurrence: Optional[str] = None,
 ):
     """
-    Create a new event in Google Calendar.
-    Dates must be ISO 8601 strings (e.g., '2025-04-02T10:00:00-07:00').
+    Creates a new event in Google Calendar. You should check the user's calendar for availability before creating a new event.
+
+    Args:
+        summary (str): Title of the event.
+        start (str): Start date and time in ISO 8601 format (e.g., '2025-04-02T10:00:00-07:00').
+        end (str): End date and time in ISO 8601 format (e.g., '2025-04-02T11:00:00-07:00').
+        calendar_id (str, optional): ID of the calendar to create the event in. Defaults to 'primary'.
+        description (str, optional): Description of the event.
+        location (str, optional): Physical location or address of the event.
+        color_id (str, optional): Color identifier for the event.
+        attendees (List[str], optional): List of email addresses to invite.
+        recurrence (str, optional): RFC5545 recurrence rule (e.g., 'RRULE:FREQ=WEEKLY;COUNT=10').
     """
     service = get_user_calendar_service()
     event = {
@@ -97,11 +124,19 @@ def create_event_tool(
         body=event,
         sendUpdates='all' if attendees else 'none'
     ).execute()
-    return f"Event '{summary}' created with ID: {created_event['id']} in calendar: {calendar_id}"
+    return f"Event created successfully.\n\n{orjson.dumps(created_event, option=orjson.OPT_INDENT_2)}"
 
-def delete_event_tool(event_id: str, calendar_id: str = 'primary'):
+@tool(parse_docstring=True)
+def delete_event_tool(
+    event_id: str, 
+    calendar_id: str = 'primary',
+    ):
     """
-    Delete an event from Google Calendar.
+    Deletes an event from Google Calendar.
+
+    Args:
+        event_id (str): ID of the event to delete.
+        calendar_id (str, optional): ID of the calendar containing the event. Defaults to 'primary'.
     """
     service = get_user_calendar_service()
     service.events().delete(
@@ -111,17 +146,21 @@ def delete_event_tool(event_id: str, calendar_id: str = 'primary'):
     ).execute()
     return f"Event {event_id} deleted successfully from calendar {calendar_id}"
 
+@tool(parse_docstring=True)
 def edit_event_tool(
     event_id: str,
     changes: dict,
-    calendar_id: str = 'primary'
+    calendar_id: str = 'primary',
 ):
     """
-    Update an existing event. 'changes' is a dict with any of:
-    summary, description, start, end, location, colorId, attendees, recurrence
+    Updates an existing event in Google Calendar.
+
+    Args:
+        event_id (str): ID of the event to update.
+        changes (dict): Dictionary of fields to update. Keys can include 'summary', 'description', 'start', 'end', 'location', 'colorId', 'attendees', 'recurrence'.
+        calendar_id (str, optional): ID of the calendar containing the event. Defaults to 'primary'.
     """
     service = get_user_calendar_service()
-    # Get current event
     current_event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
     updated_event = {}
     if 'summary' in changes:
@@ -146,51 +185,73 @@ def edit_event_tool(
         body=updated_event,
         sendUpdates='all' if 'attendees' in changes else 'none'
     ).execute()
-    return f"Event updated successfully: '{result['summary']}'"
+    return_message = f"Event updated successfully: {orjson.dumps(result, option=orjson.OPT_INDENT_2)}"
+    if 'attendees' in changes:
+        return_message += f"\n\nSent email to attendees: {orjson.dumps(result['attendees'], option=orjson.OPT_INDENT_2)}"
+    return return_message
 
+@tool(parse_docstring=True)
 def get_all_events_tool(
     limit: int = 10,
-    calendar_id: str = 'primary',
+    calendar_ids: Optional[List[str]] = ['primary'],
     time_min: Optional[str] = None,
     time_max: Optional[str] = None,
     q: Optional[str] = None,
-    show_deleted: bool = False
+    show_deleted: bool = False,
 ):
     """
-    List upcoming events from Google Calendar.
+    Lists events from Google Calendar.
+
+    Args:
+        limit (int, optional): Maximum number of events to return. Defaults to 10.
+        calendar_ids (List[str], optional): List of calendar IDs to retrieve events from. Defaults to ['primary'].
+        time_min (str, optional): Start date/time in ISO 8601 format. Defaults to now.
+        time_max (str, optional): End date/time in ISO 8601 format.
+        q (str, optional): Free text search term for events.
+        show_deleted (bool, optional): Whether to include deleted events. Defaults to False.
     """
     service = get_user_calendar_service()
     if not time_min:
         time_min = datetime.now(tz=timezone.utc).isoformat()
-    events_result = service.events().list(
-        calendarId=calendar_id,
-        maxResults=limit,
-        timeMin=time_min,
-        timeMax=time_max,
-        singleEvents=True,
-        orderBy='startTime',
-        q=q,
-        showDeleted=show_deleted
-    ).execute()
-    events = events_result.get('items', [])
+    if not calendar_ids:
+        calendar_ids = ['primary']
+    events = []
+    for calendar_id in calendar_ids:
+        events_result = service.events().list(
+            calendarId=calendar_id,
+            maxResults=limit,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime',
+            q=q,
+            showDeleted=show_deleted
+        ).execute()
+        events.extend(events_result.get('items', []))
+        
     if not events:
-        return 'No upcoming events.'
-    return '\n'.join([
-        f"{event.get('summary', 'No Title')} ({event['start'].get('dateTime', event['start'].get('date'))} - {event['end'].get('dateTime', event['end'].get('date'))}) - ID: {event['id']}"
-        for event in events
-    ])
+        return 'No upcoming events in the given time range and calendars.'
+    return events
 
-def reorder_events_tool():
+@tool(parse_docstring=True)
+def get_all_calendar_ids_tool():
     """
-    Google Calendar does not support reordering events directly, as events are sorted by start time.
-    This is a placeholder.
-    """
-    return "Reordering events is not supported by Google Calendar API. Events are always sorted by start time."
+    Retrieves all calendar IDs for the user.
 
-def search_contacts_by_name_tool(name: str):
+    Args:
     """
-    Search Google Contacts by name using the People API.
-    Returns a list of matching contacts' names and emails.
+    service = get_user_calendar_service()
+    return service.calendarList().list().execute()
+
+@tool(parse_docstring=True)
+def search_contacts_by_name_tool(
+    name: str, 
+):
+    """
+    Searches Google Contacts by name using the People API.
+
+    Args:
+        name (str): Name to search for in Google Contacts.
     """
     service = get_user_people_service()
     results = service.people().connections().list(
@@ -212,5 +273,79 @@ def search_contacts_by_name_tool(name: str):
     if not matches:
         return f"No contacts found matching '{name}'."
     return '\n'.join(matches)
+
+@tool(parse_docstring=True)
+def get_event_tool(
+    event_id: str, 
+    calendar_id: str = 'primary',
+):
+    """
+    Retrieves a single event from Google Calendar by event ID.
+
+    Args:
+        event_id (str): ID of the event to retrieve.
+        calendar_id (str, optional): ID of the calendar containing the event. Defaults to 'primary'.
+    """
+    service = get_user_calendar_service()
+    event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+    return event
+
+
+@tool(parse_docstring=True)
+def find_free_time_tool(
+    start_date: str,
+    end_date: str,
+    duration_minutes: int,
+    calendar_ids: Optional[List[str]] = None,
+):
+    """
+    Finds available free time slots between events in one or more Google Calendars.
+
+    Args:
+        start_date (str): Start of the search period (ISO 8601 format).
+        end_date (str): End of the search period (ISO 8601 format).
+        duration_minutes (int): Minimum slot duration in minutes.
+        calendar_ids (List[str], optional): List of calendar IDs to check. If not provided, uses the primary calendar.
+    """
+    service = get_user_calendar_service()
+    target_calendar_ids = calendar_ids or ['primary']
+    all_events = []
+    for cal_id in target_calendar_ids:
+        events_result = service.events().list(
+            calendarId=cal_id,
+            timeMin=start_date,
+            timeMax=end_date,
+            singleEvents=True,
+            orderBy='startTime',
+        ).execute()
+        all_events.extend(events_result.get('items', []))
+    # Sort events by start time
+    def get_event_start(event):
+        return date_parser.parse(event['start'].get('dateTime', event['start'].get('date')))
+    all_events.sort(key=get_event_start)
+    duration_ms = duration_minutes * 60 * 1000
+    current_time = date_parser.parse(start_date)
+    end_time = date_parser.parse(end_date)
+    free_slots = []
+    for event in all_events:
+        event_start = date_parser.parse(event['start'].get('dateTime', event['start'].get('date')))
+        if (event_start - current_time).total_seconds() * 1000 >= duration_ms:
+            slot_start = current_time.isoformat()
+            slot_end = event_start.isoformat()
+            free_slots.append({'start': slot_start, 'end': slot_end})
+        event_end = date_parser.parse(event['end'].get('dateTime', event['end'].get('date')))
+        current_time = max(current_time, event_end)
+    if (end_time - current_time).total_seconds() * 1000 >= duration_ms:
+        slot_start = current_time.isoformat()
+        slot_end = end_time.isoformat()
+        free_slots.append({'start': slot_start, 'end': slot_end})
+    if not free_slots:
+        return "No free time slots found that meet the criteria."
+    result = "Available time slots:\n" + "\n".join([
+        f"{date_parser.parse(slot['start']).strftime('%Y-%m-%d %H:%M:%S')} - {date_parser.parse(slot['end']).strftime('%Y-%m-%d %H:%M:%S')} "
+        f"({round((date_parser.parse(slot['end']) - date_parser.parse(slot['start'])).total_seconds() / 60)} minutes)"
+        for slot in free_slots
+    ])
+    return result
 
 
