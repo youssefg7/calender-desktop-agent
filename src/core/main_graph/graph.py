@@ -9,7 +9,7 @@ from .conditional_edges import continue_with_validator_decision, continue_with_t
 from .states import InputState, OutputState, OverallState
 from .agents import validator_agent, main_agent
 from langgraph.prebuilt import ToolNode
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool, edit_event_tool
+from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool
 import os
 import time
 import asyncio
@@ -29,7 +29,7 @@ builder.add_node("tools", ToolNode([
     create_event_tool, 
     delete_event_tool,
     get_all_events_tool, 
-    reorder_events_tool,
+    # reorder_events_tool,
     edit_event_tool
     ], messages_key="main_agent_messages"))
 

@@ -4,6 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from core.llm_factories import get_llm_model
 from .formatted_responses import ValidatorDecision, MainAgentResponse
 import orjson
+from datetime import datetime
 from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool, edit_event_tool
 from langchain_core.output_parsers import PydanticOutputParser
 
@@ -17,6 +18,7 @@ async def validator_agent(state: OverallState):
         messages = state.validator_messages
 
     messages.append(HumanMessage(content=state.user_message))
+    
     llm = get_llm_model()
     output = await llm.with_structured_output(
         schema=ValidatorDecision, include_raw=True, strict=True
@@ -40,7 +42,7 @@ async def validator_agent(state: OverallState):
 async def main_agent(state: OverallState):
     if state.main_agent_messages == []:
         system_prompt = SystemMessage(
-            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip()
+            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(today_date=datetime.now().astimezone().isoformat())
         )
         messages = [system_prompt]
     else:
@@ -58,7 +60,7 @@ async def main_agent(state: OverallState):
                 create_event_tool, 
                 delete_event_tool,
                 get_all_events_tool, 
-                reorder_events_tool,
+                # reorder_events_tool,
                 edit_event_tool
                 ])
     output: AIMessage = await llm_with_tools.ainvoke(messages)

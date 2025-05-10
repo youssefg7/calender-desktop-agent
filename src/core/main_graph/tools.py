@@ -2,20 +2,39 @@ from typing import List, Optional
 from datetime import datetime, timezone
 
 from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+import os
+import pickle
+from langgraph.types import StreamWriter
 
-# ---- Helper to get Google Calendar service ----
+# ---- Helper to get Google Calendar service for the user ----
 
-def get_calendar_service():
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+
+
+def get_user_calendar_service():
     """
-    Returns an authorized Google Calendar API service instance.
-    You must provide your own credentials.json or service account file.
+    Returns an authorized Google Calendar API service instance for the user using OAuth2.
+    Requires client_secret.json in the working directory.
     """
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
-    SERVICE_ACCOUNT_FILE = 'assets/gcp-service-account.json'
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    service = build('calendar', 'v3', credentials=credentials)
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'assets/OAuth Client ID mcp-test.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    service = build('calendar', 'v3', credentials=creds)
     return service
 
 # ---- Tool Functions ----
@@ -35,7 +54,7 @@ def create_event_tool(
     Create a new event in Google Calendar.
     Dates must be ISO 8601 strings (e.g., '2025-04-02T10:00:00-07:00').
     """
-    service = get_calendar_service()
+    service = get_user_calendar_service()
     event = {
         'summary': summary,
         'start': {'dateTime': start},
@@ -62,7 +81,7 @@ def delete_event_tool(event_id: str, calendar_id: str = 'primary'):
     """
     Delete an event from Google Calendar.
     """
-    service = get_calendar_service()
+    service = get_user_calendar_service()
     service.events().delete(
         calendarId=calendar_id,
         eventId=event_id,
@@ -79,7 +98,7 @@ def edit_event_tool(
     Update an existing event. 'changes' is a dict with any of:
     summary, description, start, end, location, colorId, attendees, recurrence
     """
-    service = get_calendar_service()
+    service = get_user_calendar_service()
     # Get current event
     current_event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
     updated_event = {}
@@ -118,9 +137,9 @@ def get_all_events_tool(
     """
     List upcoming events from Google Calendar.
     """
-    service = get_calendar_service()
+    service = get_user_calendar_service()
     if not time_min:
-        time_min = datetime.now(tz=timezone.utc).isoformat() + 'Z'
+        time_min = datetime.now(tz=timezone.utc).isoformat()
     events_result = service.events().list(
         calendarId=calendar_id,
         maxResults=limit,

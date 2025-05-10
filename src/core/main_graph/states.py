@@ -12,10 +12,9 @@ class InputState(BaseModel):
 
 class OverallState(BaseModel):
     user_message: str
-    is_valid_user_input: bool = False
     main_agent_messages: Annotated[list[BaseMessage], operator.add] = []
     validator_messages: Annotated[list[BaseMessage], operator.add] = []
-    validator_decision: bool = True
+    is_valid_user_input: bool = False
     response: str = None
     tool_calls_left: int = 5
 

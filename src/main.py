@@ -7,7 +7,6 @@ from fastapi.responses import ORJSONResponse
 from database import LangfuseHandler, get_redis_saver
 from core.main_graph import compile_graph
 
-from langgraph.checkpoint.memory import InMemorySaver
 from routes.v1 import base, chat
 
 
@@ -15,14 +14,11 @@ from routes.v1 import base, chat
 async def lifespan(app: FastAPI):
     try:
         langfuse = LangfuseHandler()
-        # await init_db()
         async for checkpoiner in get_redis_saver():
-        # async for checkpoiner in InMemorySaver():
             compile_graph(checkpointer=checkpoiner)
             yield
     finally:
         langfuse.flush()
-        # await finalize_db()
 
 
 app = FastAPI(lifespan=lifespan, default_response_class=ORJSONResponse)

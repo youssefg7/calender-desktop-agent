@@ -2,7 +2,8 @@ from .states import InputState, OverallState
 from langchain_core.messages import AIMessage
 
 def continue_with_validator_decision(state: OverallState) -> str:
-    return state.is_valid_user_input
+    # return state.is_valid_user_input
+    return True
 
 
 def continue_with_tool_call(state: OverallState):
