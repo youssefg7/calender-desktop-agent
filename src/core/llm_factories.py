@@ -25,6 +25,7 @@ def get_llm_model(llm_model_name: str = app_settings.LLM_MODEL) -> BaseChatModel
             api_key=app_settings.OPENAI_API_KEY,
             model=llm_model_name[len("openai__") :],
             temperature=0,
+            verbose=True
         )
 
     raise ValueError(f"Unsupported LLM model: {llm_model_name}")

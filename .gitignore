@@ -177,3 +177,5 @@ cython_debug/
 src/assets/gcp-service-account.json
 src/assets/OAuth Client ID mcp-test.json
 *.pickle
+
+*.DS_Store

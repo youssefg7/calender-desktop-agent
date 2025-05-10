@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str
-    LLM_MODEL: str = "openai__gpt-4.1-mini"
+    LLM_MODEL: str = "openai__gpt-4.1"
     EMBEDDING_MODEL: str = "openai__text-embedding-3-small"
     EMBEDDING_LENGTH: int = 1536
     # PG_VECTOR_DB_URL: str = ""
