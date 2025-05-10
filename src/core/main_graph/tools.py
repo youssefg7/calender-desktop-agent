@@ -349,4 +349,43 @@ def find_free_time_tool(
     ])
     return result
 
+@tool(parse_docstring=True)
+def check_conflict_tool(
+    event1_start: str,
+    event1_end: str,
+    event2_start: str,
+    event2_end: str,
+):
+    """
+    Checks if two events conflict (overlap) based on their start and end times.
+
+    Args:
+        event1_start (str): Start datetime of the first event in ISO 8601 format (e.g., '2025-05-10T10:00:00').
+        event1_end (str): End datetime of the first event in ISO 8601 format.
+        event2_start (str): Start datetime of the second event in ISO 8601 format.
+        event2_end (str): End datetime of the second event in ISO 8601 format.
+
+    Returns:
+        str: Message indicating if the events conflict and the overlapping period if applicable.
+    """
+    start1 = date_parser.parse(event1_start)
+    end1 = date_parser.parse(event1_end)
+    start2 = date_parser.parse(event2_start)
+    end2 = date_parser.parse(event2_end)
+
+    if end1 <= start2 or end2 <= start1:
+        return "✅ No conflict: The two events do not overlap."
+
+    # Compute overlap
+    overlap_start = max(start1, start2)
+    overlap_end = min(end1, end2)
+    overlap_duration = (overlap_end - overlap_start).total_seconds() / 60
+
+    return (
+        f"⚠️ Conflict detected!\n"
+        f"Overlap: {overlap_start.strftime('%Y-%m-%d %H:%M')} to {overlap_end.strftime('%Y-%m-%d %H:%M')} "
+        f"({round(overlap_duration)} minutes)"
+    )
+
+
 
