@@ -37,20 +37,22 @@ Your response must always be in the following JSON format:
     "response": "Here are the events for today:",
     "events": [
         {{
-            "type": "new",
+            "type": "existing",
             "metadata": {{
                 "title": "Meeting with John",
                 "start": "2024-01-01 10:00",
                 "end": "2024-01-01 11:00",
+                "attendees": ["john@example.com", "jane@example.com"],
                 "any other metadata": "any other metadata"
             }}
         }},
         {{
-            "type": "deleted",
+            "type": "existing",
             "metadata": {{
                 "title": "Meeting with John",
                 "start": "2024-01-01 10:00",
                 "end": "2024-01-01 11:00",
+                "attendees": ["john@example.com", "jane@example.com"],
                 "any other metadata": "any other metadata"
             }}
     ]
