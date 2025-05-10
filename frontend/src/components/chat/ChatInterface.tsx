@@ -109,6 +109,37 @@ function EventCard({ event }: EventCardProps) {
 
   const hasAttendees = event.metadata.attendees && event.metadata.attendees.length > 0;
 
+  // Function to check if string is an email
+  const isEmail = (text: string) => {
+    return /\S+@\S+\.\S+/.test(text);
+  };
+
+  // Render attendee with mailto link if it's an email
+  const renderAttendee = (attendee: string, index: number) => {
+    if (isEmail(attendee)) {
+      return (
+        <Text key={index} fontSize="xs" ml={2} color="black">
+          <a
+            href={`mailto:${attendee}`}
+            style={{
+              color: "#2B6CB0",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+            rel="noopener noreferrer"
+          >
+            {attendee}
+          </a>
+        </Text>
+      );
+    }
+    return (
+      <Text key={index} fontSize="xs" ml={2} color="black">
+        {attendee}
+      </Text>
+    );
+  };
+
   return (
     <Box
       bg={getEventTypeColor()}
@@ -137,11 +168,7 @@ function EventCard({ event }: EventCardProps) {
           <Text fontSize="xs" fontWeight="medium" color="black">
             Attendees:
           </Text>
-          {event.metadata.attendees.map((attendee: string, i: number) => (
-            <Text key={i} fontSize="xs" ml={2} color="black">
-              {attendee}
-            </Text>
-          ))}
+          {event.metadata.attendees.map((attendee: string, i: number) => renderAttendee(attendee, i))}
         </Box>
       )}
     </Box>
@@ -363,16 +390,32 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     if (messages[i].isUser) {
                       // Append to the thinking process instead of overwriting it
                       const existingThought = messages[i].thinkingProcess || "";
-                      // Use a more prominent separator with line breaks and a divider
-                      const separator = existingThought ? "\n\n----------\n\n" : "";
-                      const updatedThought = existingThought + separator + parsedMessage.response;
 
-                      // Update this message with the thinking process
-                      messages[i] = {
-                        ...messages[i],
-                        thinkingProcess: updatedThought,
-                        isThinkingExpanded: true, // Start expanded
-                      };
+                      // Skip appending if this is just "Thinking..." as it's redundant
+                      if (parsedMessage.response === "Thinking...") {
+                        // If no existing thought, use this as the initial thought
+                        if (!existingThought) {
+                          messages[i] = {
+                            ...messages[i],
+                            thinkingProcess: "Thinking...",
+                            isThinkingExpanded: true,
+                          };
+                        }
+                        // Otherwise, just keep the existing thought
+                      } else {
+                        // This is a real thought update - add a separator if needed
+                        const separator = existingThought && existingThought !== "Thinking..." ? "\n\n----------\n\n" : "";
+
+                        // If previous content was just "Thinking...", replace it completely
+                        const baseThought = existingThought === "Thinking..." ? "" : existingThought;
+                        const updatedThought = baseThought + separator + parsedMessage.response;
+
+                        messages[i] = {
+                          ...messages[i],
+                          thinkingProcess: updatedThought,
+                          isThinkingExpanded: true,
+                        };
+                      }
                       break;
                     }
                   }
@@ -457,16 +500,32 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     if (messages[i].isUser) {
                       // Append to the thinking process instead of overwriting it
                       const existingThought = messages[i].thinkingProcess || "";
-                      // Use a more prominent separator with line breaks and a divider
-                      const separator = existingThought ? "\n\n----------\n\n" : "";
-                      const updatedThought = existingThought + separator + parsedMessage.response;
 
-                      // Update this message with the thinking process
-                      messages[i] = {
-                        ...messages[i],
-                        thinkingProcess: updatedThought,
-                        isThinkingExpanded: true, // Start expanded
-                      };
+                      // Skip appending if this is just "Thinking..." as it's redundant
+                      if (parsedMessage.response === "Thinking...") {
+                        // If no existing thought, use this as the initial thought
+                        if (!existingThought) {
+                          messages[i] = {
+                            ...messages[i],
+                            thinkingProcess: "Thinking...",
+                            isThinkingExpanded: true,
+                          };
+                        }
+                        // Otherwise, just keep the existing thought
+                      } else {
+                        // This is a real thought update - add a separator if needed
+                        const separator = existingThought && existingThought !== "Thinking..." ? "\n\n----------\n\n" : "";
+
+                        // If previous content was just "Thinking...", replace it completely
+                        const baseThought = existingThought === "Thinking..." ? "" : existingThought;
+                        const updatedThought = baseThought + separator + parsedMessage.response;
+
+                        messages[i] = {
+                          ...messages[i],
+                          thinkingProcess: updatedThought,
+                          isThinkingExpanded: true,
+                        };
+                      }
                       break;
                     }
                   }
