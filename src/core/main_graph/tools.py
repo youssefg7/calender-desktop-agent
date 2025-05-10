@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dateutil import parser as date_parser
 
 from googleapiclient.discovery import build
@@ -12,6 +12,8 @@ from langchain_core.tools.base import InjectedToolArg
 from typing_extensions import Annotated
 from langchain_core.tools import tool
 import orjson
+from difflib import SequenceMatcher
+from typing import Tuple
 # ---- Helper to get Google Calendar service for the user ----
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -55,9 +57,12 @@ def get_user_people_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'assets/OAuth Client ID mcp-test.json', PEOPLE_SCOPES)
-            creds = flow.run_local_server(port=0)
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'assets/OAuth Client ID mcp-test.json', PEOPLE_SCOPES)
+                creds = flow.run_local_server(port=0)
+            except Exception as e:
+                print(f"Error getting user people service: {e}")
         with open('token_people.pickle', 'wb') as token:
             pickle.dump(creds, token)
     service = build('people', 'v1', credentials=creds)
@@ -71,9 +76,9 @@ TOOLS_MESSAGES = {
     "edit_event_tool": "Editing event...✏️",
     "get_all_events_tool": "Checking your calendar...📅",
     "get_all_calendar_ids_tool": "Checking your calendars...📆",
-    "search_contacts_by_name_tool": "Searching in your contacts...🔍",
     "get_event_tool": "Checking your calendar...📅",
     "find_free_time_tool": "Looking for free time in your calendars...⏰",
+    "find_similar_contacts_tool": "Looking for matching contacts..🔍",
 }
 
 
@@ -243,36 +248,6 @@ def get_all_calendar_ids_tool():
     service = get_user_calendar_service()
     return service.calendarList().list().execute()
 
-@tool(parse_docstring=True)
-def search_contacts_by_name_tool(
-    name: str, 
-):
-    """
-    Searches Google Contacts by name using the People API.
-
-    Args:
-        name (str): Name to search for in Google Contacts.
-    """
-    service = get_user_people_service()
-    results = service.people().connections().list(
-        resourceName='people/me',
-        pageSize=20,
-        personFields='names,emailAddresses',
-        requestMask_includeField='person.names,person.emailAddresses'
-    ).execute()
-    connections = results.get('connections', [])
-    matches = []
-    for person in connections:
-        names = person.get('names', [])
-        emails = person.get('emailAddresses', [])
-        if names and emails:
-            display_name = names[0].get('displayName', '')
-            email = emails[0].get('value', '')
-            if name.lower() in display_name.lower():
-                matches.append(f"{display_name} <{email}>")
-    if not matches:
-        return f"No contacts found matching '{name}'."
-    return '\n'.join(matches)
 
 @tool(parse_docstring=True)
 def get_event_tool(
@@ -310,42 +285,170 @@ def find_free_time_tool(
     service = get_user_calendar_service()
     target_calendar_ids = calendar_ids or ['primary']
     all_events = []
+    # Convert input dates to date objects
+    start_date_obj = date_parser.parse(start_date).date()
+    end_date_obj = date_parser.parse(end_date).date()
+    # RFC3339 datetime strings for API
+    time_min = datetime.combine(start_date_obj, datetime.min.time()).isoformat() + 'Z'
+    # timeMax is exclusive, so use the day after end_date
+    time_max = datetime.combine(end_date_obj + timedelta(days=1), datetime.min.time()).isoformat() + 'Z'
+    print(f"will search for free time between {time_min} and {time_max}")
     for cal_id in target_calendar_ids:
         events_result = service.events().list(
             calendarId=cal_id,
-            timeMin=start_date,
-            timeMax=end_date,
+            timeMin=time_min,
+            timeMax=time_max,
             singleEvents=True,
             orderBy='startTime',
         ).execute()
         all_events.extend(events_result.get('items', []))
-    # Sort events by start time
+    # Sort events by start date (ignore time)
     def get_event_start(event):
-        return date_parser.parse(event['start'].get('dateTime', event['start'].get('date')))
+        return date_parser.parse(event['start'].get('dateTime', event['start'].get('date'))).date()
     all_events.sort(key=get_event_start)
-    duration_ms = duration_minutes * 60 * 1000
-    current_time = date_parser.parse(start_date)
-    end_time = date_parser.parse(end_date)
+    print(f"found {len(all_events)} events")
+    # Truncate input start and end to date (midnight)
+    current_time = start_date_obj
     free_slots = []
     for event in all_events:
-        event_start = date_parser.parse(event['start'].get('dateTime', event['start'].get('date')))
-        if (event_start - current_time).total_seconds() * 1000 >= duration_ms:
+        event_start = date_parser.parse(event['start'].get('dateTime', event['start'].get('date'))).date()
+        # Check if there's enough free time before this event starts
+        days_free = (event_start - current_time).days
+        if days_free * 1440 >= duration_minutes:
             slot_start = current_time.isoformat()
-            slot_end = event_start.isoformat()
-            free_slots.append({'start': slot_start, 'end': slot_end})
-        event_end = date_parser.parse(event['end'].get('dateTime', event['end'].get('date')))
+            slot_end = (event_start - timedelta(days=1)).isoformat() if days_free > 0 else slot_start
+            free_slots.append({'start': slot_start, 'end': slot_end, 'days': days_free})
+        # Move current time to the end of this event
+        event_end = date_parser.parse(event['end'].get('dateTime', event['end'].get('date'))).date()
         current_time = max(current_time, event_end)
-    if (end_time - current_time).total_seconds() * 1000 >= duration_ms:
+    # Check if there's free time after the last event
+    days_free = (time_max - current_time).days
+    if days_free * 1440 >= duration_minutes:
         slot_start = current_time.isoformat()
-        slot_end = end_time.isoformat()
-        free_slots.append({'start': slot_start, 'end': slot_end})
+        slot_end = time_max.isoformat()
+        free_slots.append({'start': slot_start, 'end': slot_end, 'days': days_free})
     if not free_slots:
         return "No free time slots found that meet the criteria."
-    result = "Available time slots:\n" + "\n".join([
-        f"{date_parser.parse(slot['start']).strftime('%Y-%m-%d %H:%M:%S')} - {date_parser.parse(slot['end']).strftime('%Y-%m-%d %H:%M:%S')} "
-        f"({round((date_parser.parse(slot['end']) - date_parser.parse(slot['start'])).total_seconds() / 60)} minutes)"
-        for slot in free_slots
+    result = "Available time slots (by day):\n" + "\n".join([
+        f"{slot['start']} to {slot['end']} ({slot['days']} days)"
+        for slot in free_slots if slot['days'] > 0
     ])
     return result
 
+@tool(parse_docstring=True)
+def find_similar_contacts_tool(name: str, top_n: int = 2) -> Tuple[List[dict], bool]:
+    """
+    Search for similar names in user's contacts and return top matches.
+    
+    Args:
+        name (str): Name to search for in user's contacts.
+        top_n (int, optional): Number of top matches to return. Defaults to 2.
+    """
+    print(f"Searching for contacts similar to: {name}")
+    try:
+        service = get_user_people_service()
+        all_contacts = []
+        next_page_token = None
+        page_count = 0
+        
+        # Fetch all contacts
+        while True:
+            page_count += 1
+            print(f"\nFetching contacts page {page_count}...")
+            try:
+                results = service.people().connections().list(
+                    resourceName='people/me',
+                    pageSize=1000,
+                    pageToken=next_page_token,
+                    personFields='names,emailAddresses'
+                ).execute()
+                
+                connections = results.get('connections', [])
+                print(f"Found {len(connections)} contacts on this page")
+                
+                for person in connections:
+                    names = person.get('names', [])
+                    emails = person.get('emailAddresses', [])
+                    
+                    # Log the raw contact data for debugging
+                    print(f"\nProcessing contact:")
+                    print(f"Names: {names}")
+                    print(f"Emails: {emails}")
+                    
+                    # Process contact even if it only has a name
+                    if names:
+                        display_name = names[0].get('displayName', '')
+                        email = emails[0].get('value', '') if emails else 'No email'
+                        contact_info = {
+                            'name': display_name,
+                            'email': email
+                        }
+                        all_contacts.append(contact_info)
+                        print(f"Added contact: {display_name} <{email}>")
+                    else:
+                        print("Skipping contact: No name found")
+                
+                next_page_token = results.get('nextPageToken')
+                if not next_page_token:
+                    print("No more pages to fetch")
+                    break
+                    
+            except Exception as e:
+                print(f"Error fetching page {page_count}: {str(e)}")
+                break
+        
+        print(f"\nTotal contacts fetched: {len(all_contacts)}")
+        print("All contacts:")
+        for contact in all_contacts:
+            print(f"- {contact['name']} <{contact['email']}>")
+        
+        if not all_contacts:
+            print("No contacts found in the system")
+            return [], False
+        # Split search name into parts
+        search_parts = [p for p in name.lower().split() if p]
+        print(f"\nSearch name parts: {search_parts}")
+        # Calculate similarity scores with improved matching
+        print("\nCalculating similarity scores:")
+        for contact in all_contacts:
+            contact_name = contact['name'].lower()
+            contact_parts = [p for p in contact_name.split() if p]
+            # Calculate full name similarity
+            full_name_similarity = SequenceMatcher(None, name.lower(), contact_name).ratio()
+            # Calculate part similarity: only count strong partial matches (substring of at least 3 chars)
+            part_matches = 0
+            for search_part in search_parts:
+                for contact_part in contact_parts:
+                    if search_part == contact_part:
+                        part_matches += 1
+                        break
+                    elif len(search_part) >= 3 and len(contact_part) >= 3 and (search_part in contact_part or contact_part in search_part):
+                        part_matches += 0.5  # partial match, but not full
+                        break
+            part_similarity = part_matches / max(len(search_parts), len(contact_parts), 1)
+            # Final similarity: max of full name similarity and part similarity, but only 1 if exact match
+            if name.strip().lower() == contact_name.strip().lower():
+                similarity = 1.0
+            else:
+                similarity = max(full_name_similarity, part_similarity)
+                # Cap similarity to <1 if not exact
+                if similarity > 0.99:
+                    similarity = 0.99
+            contact['similarity'] = similarity
+            print(f"Contact: {contact['name']} - Similarity: {contact['similarity']:.2f}")
+        # Filter by similarity threshold first
+        matches = [contact for contact in all_contacts if contact['similarity'] > 0.2]
+        # Then sort and get top N matches
+        matches.sort(key=lambda x: x['similarity'], reverse=True)
+        top_matches = matches[:top_n]
+        if not top_matches:
+            print(f"\nNo similar contacts found for: {name}")
+            return [], False
+        print(f"\nFound {len(top_matches)} similar contacts:")
+        for match in top_matches:
+            print(f"- {match['name']} ({match['email']}) - Similarity: {match['similarity']:.2f}")
+        return top_matches, True
+    except Exception as e:
+        print(f"Error searching contacts: {str(e)}")
+        raise
 
