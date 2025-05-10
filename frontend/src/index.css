@@ -1,0 +1,186 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Add styling for markdown content */
+.markdown-content {
+  /* Base styles */
+  color: inherit;
+  line-height: 1.6;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-content h1 {
+  font-size: 1.5em;
+}
+
+.markdown-content h2 {
+  font-size: 1.3em;
+}
+
+.markdown-content h3 {
+  font-size: 1.2em;
+}
+
+.markdown-content p {
+  margin-bottom: 0.8em;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 0.8em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.3em;
+}
+
+.markdown-content pre {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  padding: 0.5em;
+  overflow-x: auto;
+  margin-bottom: 0.8em;
+}
+
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-family: monospace;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid rgba(127, 127, 127, 0.5);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid rgba(127, 127, 127, 0.5);
+  padding: 0.4em 0.8em;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.markdown-content a {
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  border-radius: 3px;
+}
+
+/* Apply dark mode adjustments when inside a dark element */
+.chakra-ui-dark .markdown-content code,
+.chakra-ui-dark .markdown-content pre {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.chakra-ui-dark .markdown-content a {
+  color: #63b3ed;
+}
+
+.chakra-ui-dark .markdown-content th {
+  background-color: rgba(255, 255, 255, 0.05);
+}

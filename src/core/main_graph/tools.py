@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import os
+import orjson
 import pickle
 from langgraph.types import StreamWriter
 from langchain_core.tools.base import InjectedToolArg
