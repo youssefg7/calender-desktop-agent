@@ -179,3 +179,5 @@ src/assets/OAuth Client ID mcp-test.json
 *.pickle
 
 *.DS_Store
+
+frontend/node_modules/
