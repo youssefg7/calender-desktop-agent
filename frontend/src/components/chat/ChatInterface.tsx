@@ -645,7 +645,7 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                   <Flex align="center">
                     {isLoading && i === currentSession.messages.length - 1 && <Spinner size="xs" color="blue.400" mr={2} />}
                     <Heading size="xs" color="blue.300" fontSize="xs">
-                      Agent Thought Process
+                      ChronoSync.AI Thought Process
                     </Heading>
                   </Flex>
                   <IconButton

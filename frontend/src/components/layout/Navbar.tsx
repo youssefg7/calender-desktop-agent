@@ -116,6 +116,13 @@ export function Navbar({
           </Menu>
         </Flex>
 
+        {/* Add ChronoSync.AI title in the center */}
+        <Flex position="absolute" left="50%" transform="translateX(-50%)" align="center">
+          <Text fontSize="md" fontWeight="bold" color="blue.400" letterSpacing="wide">
+            ChronoSync.AI
+          </Text>
+        </Flex>
+
         <Menu>
           <MenuButton>
             <Avatar size="xs" name="User" />
