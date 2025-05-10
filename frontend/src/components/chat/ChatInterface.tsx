@@ -363,7 +363,8 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     if (messages[i].isUser) {
                       // Append to the thinking process instead of overwriting it
                       const existingThought = messages[i].thinkingProcess || "";
-                      const separator = existingThought ? "\n\n" : "";
+                      // Use a more prominent separator with line breaks and a divider
+                      const separator = existingThought ? "\n\n----------\n\n" : "";
                       const updatedThought = existingThought + separator + parsedMessage.response;
 
                       // Update this message with the thinking process
@@ -456,7 +457,8 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     if (messages[i].isUser) {
                       // Append to the thinking process instead of overwriting it
                       const existingThought = messages[i].thinkingProcess || "";
-                      const separator = existingThought ? "\n\n" : "";
+                      // Use a more prominent separator with line breaks and a divider
+                      const separator = existingThought ? "\n\n----------\n\n" : "";
                       const updatedThought = existingThought + separator + parsedMessage.response;
 
                       // Update this message with the thinking process
