@@ -179,4 +179,7 @@ frontend/node_modules/
 src/assets/gcp-service-account.json
 src/assets/OAuth Client ID mcp-test.json
 *.pickle
-src/assets/
+
+src/assets/gcp-service-account.json
+src/assets/OAuth Client ID mcp-test.json
+*.pickle
