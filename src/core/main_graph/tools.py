@@ -80,7 +80,9 @@ TOOLS_MESSAGES = {
     "get_event_tool": "Checking your calendar...📅",
     "find_free_time_tool": "Looking for free time in your calendars...⏰",
     "find_similar_contacts_tool": "Looking for matching contacts..🔍",
+    "get_calendar_invitations_tool": "Fetching your calendar invitations...📅",
 }
+
 
 
 @tool(parse_docstring=True)
@@ -192,7 +194,7 @@ def edit_event_tool(
         calendarId=calendar_id,
         eventId=event_id,
         body=updated_event,
-        sendUpdates='all' if 'attendees' in changes else 'none'
+        sendUpdates='all'
     ).execute()
     return_message = f"Event updated successfully: {orjson.dumps(result, option=orjson.OPT_INDENT_2)}"
     if 'attendees' in changes:
@@ -278,12 +280,12 @@ def find_free_time_tool(
     calendar_ids: Optional[List[str]] = None,
 ):
     """
-    Finds available free time slots between events in one or more Google Calendars.
+    Finds available free days (days with no events at all) in one or more Google Calendars.
 
     Args:
         start_date (str): Start of the search period (ISO 8601 format).
         end_date (str): End of the search period (ISO 8601 format).
-        duration_minutes (int): Minimum slot duration in minutes.
+        duration_minutes (int): Minimum slot duration in minutes (must be a full day or more to be considered free).
         calendar_ids (List[str], optional): List of calendar IDs to check. If not provided, uses the primary calendar.
     """
     service = get_user_calendar_service()
@@ -294,9 +296,8 @@ def find_free_time_tool(
     end_date_obj = date_parser.parse(end_date).date()
     # RFC3339 datetime strings for API
     time_min = datetime.combine(start_date_obj, datetime.min.time()).isoformat() + 'Z'
-    # timeMax is exclusive, so use the day after end_date
-    time_max = datetime.combine(end_date_obj + timedelta(days=1), datetime.min.time()).isoformat() + 'Z'
-    print(f"will search for free time between {time_min} and {time_max}")
+    time_max = datetime.combine(end_date_obj, datetime.max.time()).isoformat() + 'Z'
+    print(f"will search for free days between {time_min} and {time_max}")
     for cal_id in target_calendar_ids:
         events_result = service.events().list(
             calendarId=cal_id,
@@ -306,36 +307,36 @@ def find_free_time_tool(
             orderBy='startTime',
         ).execute()
         all_events.extend(events_result.get('items', []))
-    # Sort events by start date (ignore time)
-    def get_event_start(event):
-        return date_parser.parse(event['start'].get('dateTime', event['start'].get('date'))).date()
-    all_events.sort(key=get_event_start)
-    print(f"found {len(all_events)} events")
-    # Truncate input start and end to date (midnight)
-    current_time = start_date_obj
-    free_slots = []
+    # Build a set of all busy days
+    busy_days = set()
     for event in all_events:
         event_start = date_parser.parse(event['start'].get('dateTime', event['start'].get('date'))).date()
-        # Check if there's enough free time before this event starts
-        days_free = (event_start - current_time).days
-        if days_free * 1440 >= duration_minutes:
-            slot_start = current_time.isoformat()
-            slot_end = (event_start - timedelta(days=1)).isoformat() if days_free > 0 else slot_start
-            free_slots.append({'start': slot_start, 'end': slot_end, 'days': days_free})
-        # Move current time to the end of this event
-        event_end = date_parser.parse(event['end'].get('dateTime', event['end'].get('date'))).date()
-        current_time = max(current_time, event_end)
-    # Check if there's free time after the last event
-    days_free = (time_max - current_time).days
-    if days_free * 1440 >= duration_minutes:
-        slot_start = current_time.isoformat()
-        slot_end = time_max.isoformat()
-        free_slots.append({'start': slot_start, 'end': slot_end, 'days': days_free})
-    if not free_slots:
-        return "No free time slots found that meet the criteria."
-    result = "Available time slots (by day):\n" + "\n".join([
-        f"{slot['start']} to {slot['end']} ({slot['days']} days)"
-        for slot in free_slots if slot['days'] > 0
+        busy_days.add(event_start)
+    # Find all free days in the range
+    free_days = []
+    day = start_date_obj
+    while day <= end_date_obj:
+        if day not in busy_days:
+            free_days.append(day)
+        day += timedelta(days=1)
+    # Only return slots that meet the minimum duration in days
+    min_days = max(1, (duration_minutes + 1439) // 1440)
+    result_ranges = []
+    current_range = []
+    for d in free_days:
+        if not current_range or (d - current_range[-1]).days == 1:
+            current_range.append(d)
+        else:
+            if len(current_range) >= min_days:
+                result_ranges.append((current_range[0], current_range[-1], len(current_range)))
+            current_range = [d]
+    if len(current_range) >= min_days:
+        result_ranges.append((current_range[0], current_range[-1], len(current_range)))
+    if not result_ranges:
+        return "No free days found that meet the criteria."
+    result = "Available free days:\n" + "\n".join([
+        f"{rng[0]} to {rng[1]} ({rng[2]} days)" if rng[0] != rng[1] else f"{rng[0]} (1 day)"
+        for rng in result_ranges
     ])
     return result
 
@@ -456,3 +457,154 @@ def find_similar_contacts_tool(name: str, top_n: int = 2) -> Tuple[List[dict], b
         print(f"Error searching contacts: {str(e)}")
         raise
 
+
+@tool(parse_docstring=True)
+def add_contact_tool(
+    name: str,
+    email: str,
+    phone: Optional[str] = None,
+    notes: Optional[str] = None
+):
+    """
+    Adds a new contact to Google Contacts.
+
+    Args:
+        name (str): Full name of the contact
+        email (str): Email address of the contact
+        phone (Optional[str]): Phone number of the contact
+        notes (Optional[str]): Additional notes about the contact
+    """
+    try:
+        service = get_user_people_service()
+        
+        # Create the contact body
+        contact_body = {
+            'names': [{'givenName': name}],
+            'emailAddresses': [{'value': email}]
+        }
+        
+        if phone:
+            contact_body['phoneNumbers'] = [{'value': phone}]
+            
+        if notes:
+            contact_body['biographies'] = [{'value': notes}]
+
+        # Create the contact
+        result = service.people().createContact(
+            body=contact_body
+        ).execute()
+
+        return f"Contact added successfully: {result['names'][0]['givenName']} ({result['emailAddresses'][0]['value']})"
+
+    except Exception as e:
+        return f"Error adding contact: {str(e)}"
+
+@tool(parse_docstring=True)
+def edit_contact_tool(
+    resource_name: str,
+    changes: dict
+):
+    """
+    Edits an existing contact in Google Contacts.
+
+    Args:
+        resource_name (str): The resource name of the contact to edit (e.g., 'people/c123456789')
+        changes (dict): Dictionary of fields to update. Keys can include 'name', 'email', 'phone', 'notes'
+    """
+    try:
+        service = get_user_people_service()
+        
+        # Get current contact
+        contact = service.people().get(
+            resourceName=resource_name,
+            personFields='names,emailAddresses,phoneNumbers,biographies'
+        ).execute()
+
+        # Prepare update mask and body
+        update_person_fields = []
+        contact_body = {}
+
+        if 'name' in changes:
+            contact_body['names'] = [{'givenName': changes['name']}]
+            update_person_fields.append('names')
+            
+        if 'email' in changes:
+            contact_body['emailAddresses'] = [{'value': changes['email']}]
+            update_person_fields.append('emailAddresses')
+            
+        if 'phone' in changes:
+            contact_body['phoneNumbers'] = [{'value': changes['phone']}]
+            update_person_fields.append('phoneNumbers')
+            
+        if 'notes' in changes:
+            contact_body['biographies'] = [{'value': changes['notes']}]
+            update_person_fields.append('biographies')
+
+        # Update the contact
+        result = service.people().updateContact(
+            resourceName=resource_name,
+            updatePersonFields=','.join(update_person_fields),
+            body=contact_body
+        ).execute()
+
+        return f"Contact updated successfully: {result['names'][0]['givenName']}"
+
+    except Exception as e:
+        return f"Error updating contact: {str(e)}"
+
+
+
+    
+@tool(parse_docstring=True)
+def get_calendar_invitations_tool(
+    calendar_id: str = 'primary',
+    limit: int = 10,
+):
+    """
+    Gets pending calendar invitations from Google Calendar.
+
+    Args:
+        calendar_id (str, optional): ID of the calendar to check. Defaults to 'primary'.
+        limit (int, optional): Maximum number of invitations to return. Defaults to 10.
+    """
+    service = get_user_calendar_service()
+    time_min = datetime.now(tz=timezone.utc).isoformat()
+
+    # Get all events including invitations
+    events_result = service.events().list(
+        calendarId=calendar_id,
+        maxResults=limit,
+        timeMin=time_min,
+        singleEvents=True,
+        orderBy='startTime',
+        showDeleted=False
+    ).execute()
+
+    invitations = events_result.get('items', [])
+    
+    if not invitations:
+        return 'No calendar events or invitations found.'
+
+    # Filter to find pending invitations
+    pending_invitations = []
+    for event in invitations:
+        # Check if user is an attendee and hasn't responded
+        attendees = event.get('attendees', [])
+        for attendee in attendees:
+            if (attendee.get('self', False) and 
+                attendee.get('responseStatus') in ['needsAction', 'tentative']):
+                pending_invitations.append(event)
+                break
+        
+        # Also include events where user is the organizer and others haven't responded
+        if event.get('organizer', {}).get('self', False):
+            for attendee in attendees:
+                if (not attendee.get('self', False) and 
+                    attendee.get('responseStatus') == 'needsAction'):
+                    pending_invitations.append(event)
+                    break
+
+    if not pending_invitations:
+        return 'No pending calendar invitations found.'
+
+    return pending_invitations
