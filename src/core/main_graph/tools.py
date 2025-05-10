@@ -220,6 +220,14 @@ def get_all_events_tool(
     service = get_user_calendar_service()
     if not time_min:
         time_min = datetime.now(tz=timezone.utc).isoformat()
+    else:
+        time_min = datetime.fromisoformat(time_min)
+    time_min = time_min.replace(hour=0, minute=0, second=0, microsecond=0)
+    if not time_max:
+        time_max = datetime.now(tz=timezone.utc).isoformat()
+    else:
+        time_max = datetime.fromisoformat(time_max)
+    time_max = time_max.replace(hour=23, minute=59, second=59, microsecond=999999)
     if not calendar_ids:
         calendar_ids = ['primary']
     events = []
@@ -227,8 +235,8 @@ def get_all_events_tool(
         events_result = service.events().list(
             calendarId=calendar_id,
             maxResults=limit,
-            timeMin=time_min,
-            timeMax=time_max,
+            timeMin=time_min.isoformat(),
+            timeMax=time_max.isoformat(),
             singleEvents=True,
             orderBy='startTime',
             q=q,
