@@ -5,7 +5,7 @@ from core.llm_factories import get_llm_model
 from .formatted_responses import ValidatorDecision, MainAgentResponse
 import orjson
 from datetime import datetime
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_free_time_tool, find_similar_contacts_tool, get_calendar_invitations_tool
+from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_similar_contacts_tool, get_calendar_invitations_tool
 from langchain_core.output_parsers import PydanticOutputParser
 
 async def validator_agent(state: OverallState):
@@ -47,6 +47,9 @@ async def main_agent(state: OverallState):
         messages = [system_prompt]
     else:
         messages = state.main_agent_messages
+        messages[0] = SystemMessage(
+            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(today_date=datetime.now().astimezone().isoformat())
+        )
     
     messages.append(
         HumanMessage(
@@ -80,6 +83,6 @@ async def main_agent(state: OverallState):
         ),
         "response": parsed.response if not output.tool_calls else "",
         "tool_calls_left": (
-            state.tool_calls_left - 1 if output.tool_calls else state.tool_calls_left
+            state.tool_calls_left - 1 if output.tool_calls else 5
         ),
     }

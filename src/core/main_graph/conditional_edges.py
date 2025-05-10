@@ -5,7 +5,6 @@ from .tools import TOOLS_MESSAGES
 
 
 def continue_with_validator_decision(state: OverallState) -> str:
-    # return state.is_valid_user_input
     return True
 
 

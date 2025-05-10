@@ -1,6 +1,5 @@
 from typing import List, Optional
-from datetime import datetime, timezone, timedelta
-from dateutil import parser as date_parser
+from datetime import datetime, timezone
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -8,9 +7,6 @@ from google.auth.transport.requests import Request
 import os
 import orjson
 import pickle
-from langgraph.types import StreamWriter
-from langchain_core.tools.base import InjectedToolArg
-from typing_extensions import Annotated
 from langchain_core.tools import tool
 import orjson
 from difflib import SequenceMatcher
@@ -271,74 +267,6 @@ def get_event_tool(
     event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
     return event
 
-
-@tool(parse_docstring=True)
-def find_free_time_tool(
-    start_date: str,
-    end_date: str,
-    duration_minutes: int,
-    calendar_ids: Optional[List[str]] = None,
-):
-    """
-    Finds available free days (days with no events at all) in one or more Google Calendars.
-
-    Args:
-        start_date (str): Start of the search period (ISO 8601 format).
-        end_date (str): End of the search period (ISO 8601 format).
-        duration_minutes (int): Minimum slot duration in minutes (must be a full day or more to be considered free).
-        calendar_ids (List[str], optional): List of calendar IDs to check. If not provided, uses the primary calendar.
-    """
-    service = get_user_calendar_service()
-    target_calendar_ids = calendar_ids or ['primary']
-    all_events = []
-    # Convert input dates to date objects
-    start_date_obj = date_parser.parse(start_date).date()
-    end_date_obj = date_parser.parse(end_date).date()
-    # RFC3339 datetime strings for API
-    time_min = datetime.combine(start_date_obj, datetime.min.time()).isoformat() + 'Z'
-    time_max = datetime.combine(end_date_obj, datetime.max.time()).isoformat() + 'Z'
-    print(f"will search for free days between {time_min} and {time_max}")
-    for cal_id in target_calendar_ids:
-        events_result = service.events().list(
-            calendarId=cal_id,
-            timeMin=time_min,
-            timeMax=time_max,
-            singleEvents=True,
-            orderBy='startTime',
-        ).execute()
-        all_events.extend(events_result.get('items', []))
-    # Build a set of all busy days
-    busy_days = set()
-    for event in all_events:
-        event_start = date_parser.parse(event['start'].get('dateTime', event['start'].get('date'))).date()
-        busy_days.add(event_start)
-    # Find all free days in the range
-    free_days = []
-    day = start_date_obj
-    while day <= end_date_obj:
-        if day not in busy_days:
-            free_days.append(day)
-        day += timedelta(days=1)
-    # Only return slots that meet the minimum duration in days
-    min_days = max(1, (duration_minutes + 1439) // 1440)
-    result_ranges = []
-    current_range = []
-    for d in free_days:
-        if not current_range or (d - current_range[-1]).days == 1:
-            current_range.append(d)
-        else:
-            if len(current_range) >= min_days:
-                result_ranges.append((current_range[0], current_range[-1], len(current_range)))
-            current_range = [d]
-    if len(current_range) >= min_days:
-        result_ranges.append((current_range[0], current_range[-1], len(current_range)))
-    if not result_ranges:
-        return "No free days found that meet the criteria."
-    result = "Available free days:\n" + "\n".join([
-        f"{rng[0]} to {rng[1]} ({rng[2]} days)" if rng[0] != rng[1] else f"{rng[0]} (1 day)"
-        for rng in result_ranges
-    ])
-    return result
 
 @tool(parse_docstring=True)
 def find_similar_contacts_tool(name: str, top_n: int = 2) -> Tuple[List[dict], bool]:

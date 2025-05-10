@@ -9,7 +9,7 @@ from .conditional_edges import continue_with_validator_decision, continue_with_t
 from .states import InputState, OutputState, OverallState
 from .agents import validator_agent, main_agent
 from langgraph.prebuilt import ToolNode
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_free_time_tool, find_similar_contacts_tool, get_calendar_invitations_tool
+from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_similar_contacts_tool, get_calendar_invitations_tool
 import os
 import time
 import asyncio
@@ -30,7 +30,6 @@ create_event_tool,
                 delete_event_tool,
                 get_all_events_tool, 
                 edit_event_tool,
-                # find_free_time_tool,
                 find_similar_contacts_tool,
                 get_calendar_invitations_tool,
     ], messages_key="main_agent_messages"))
