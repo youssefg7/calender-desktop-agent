@@ -7,5 +7,6 @@ export interface CalendarRequest {
 export interface Calendar {
   id: string;
   name: string;
+  email: string;
   requests: CalendarRequest[];
 }

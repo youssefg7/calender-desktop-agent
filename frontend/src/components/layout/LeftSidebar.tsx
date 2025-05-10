@@ -16,6 +16,7 @@ export const mockCalendars: Calendar[] = [
   {
     id: "1",
     name: "Work Account",
+    email: "work@example.com",
     requests: [
       { id: "1", summary: "Request to add new team meeting", status: "done" },
       { id: "2", summary: "Schedule project review", status: "inProgress" },
@@ -24,6 +25,7 @@ export const mockCalendars: Calendar[] = [
   {
     id: "2",
     name: "Personal Account",
+    email: "personal@gmail.com",
     requests: [
       { id: "3", summary: "Dentist appointment", status: "canceled" },
       { id: "4", summary: "Gym session", status: "done" },

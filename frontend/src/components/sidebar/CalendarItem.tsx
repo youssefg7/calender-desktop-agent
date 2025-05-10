@@ -41,7 +41,29 @@ export function CalendarItem({
         <Box bg="teal.500" p={1} borderRadius="md" mr={2} display="flex" alignItems="center" justifyContent="center">
           <Icon as={FiCalendar} color="white" boxSize="0.9em" />
         </Box>
-        <Text fontSize="sm" fontWeight="medium" color={textColor} flex="1" userSelect="none">
+        <Text
+          fontSize="sm"
+          fontWeight="medium"
+          color={textColor}
+          flex="1"
+          userSelect="none"
+          position="relative"
+          _hover={{
+            "&::after": {
+              content: `"${calendar.email}"`,
+              position: "absolute",
+              top: "-25px",
+              left: "0",
+              backgroundColor: "gray.700",
+              color: "white",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              fontSize: "10px",
+              zIndex: "9999",
+              whiteSpace: "nowrap",
+            },
+          }}
+        >
           {calendar.name}
         </Text>
         <Icon

@@ -361,10 +361,15 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                   // Find the last user message
                   for (let i = messages.length - 1; i >= 0; i--) {
                     if (messages[i].isUser) {
+                      // Append to the thinking process instead of overwriting it
+                      const existingThought = messages[i].thinkingProcess || "";
+                      const separator = existingThought ? "\n\n" : "";
+                      const updatedThought = existingThought + separator + parsedMessage.response;
+
                       // Update this message with the thinking process
                       messages[i] = {
                         ...messages[i],
-                        thinkingProcess: parsedMessage.response,
+                        thinkingProcess: updatedThought,
                         isThinkingExpanded: true, // Start expanded
                       };
                       break;
@@ -449,10 +454,15 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                   // Find the last user message
                   for (let i = messages.length - 1; i >= 0; i--) {
                     if (messages[i].isUser) {
+                      // Append to the thinking process instead of overwriting it
+                      const existingThought = messages[i].thinkingProcess || "";
+                      const separator = existingThought ? "\n\n" : "";
+                      const updatedThought = existingThought + separator + parsedMessage.response;
+
                       // Update this message with the thinking process
                       messages[i] = {
                         ...messages[i],
-                        thinkingProcess: parsedMessage.response,
+                        thinkingProcess: updatedThought,
                         isThinkingExpanded: true, // Start expanded
                       };
                       break;

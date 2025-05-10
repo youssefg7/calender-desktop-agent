@@ -55,16 +55,59 @@ export function Navbar({
                 <FiChevronDown style={{ marginLeft: "6px" }} size="0.9em" />
               </Flex>
             </MenuButton>
-            <MenuList bg="gray.800" borderColor="gray.700" zIndex={40} minW="150px">
+            <MenuList
+              bg="gray.800"
+              borderColor="gray.700"
+              zIndex={40}
+              minW="180px"
+              p={2}
+              boxShadow="0 4px 12px rgba(0, 0, 0, 0.3)"
+              borderRadius="xl"
+              border="1px solid"
+            >
               {calendars.map((calendar) => (
                 <MenuItem
                   key={calendar.id}
                   onClick={() => onSelectCalendar(calendar.id)}
                   color="gray.300"
                   bg={selectedCalendarId === calendar.id ? "gray.700" : "transparent"}
-                  _hover={{ bg: "gray.700" }}
+                  position="relative"
+                  _hover={{
+                    bg: "gray.700",
+                    "&::after": {
+                      content: `"${calendar.email}"`,
+                      position: "absolute",
+                      top: "0",
+                      right: "-110px",
+                      backgroundColor: "blue.700",
+                      color: "white",
+                      padding: "3px 8px",
+                      borderRadius: "full",
+                      fontSize: "9px",
+                      zIndex: "9999",
+                      whiteSpace: "nowrap",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        left: "-6px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        borderTop: "4px solid transparent",
+                        borderBottom: "4px solid transparent",
+                        borderRight: "6px solid",
+                        borderRightColor: "blue.700",
+                      },
+                    },
+                  }}
                   fontSize="xs"
-                  py={1}
+                  py={2}
+                  px={3}
+                  mb={1}
+                  borderRadius="full"
+                  transition="all 0.2s"
                 >
                   {calendar.name}
                 </MenuItem>
