@@ -29,11 +29,11 @@ async def start_chat(
     graph: CompiledStateGraph = Depends(get_compiled_graph),
 ):
     conversation_id = str(uuid.uuid4())
-    langfuse_handler = LangfuseHandler()
-    trace, callback_handler = langfuse_handler.get_callback_handler()
+    # langfuse_handler = LangfuseHandler()
+    # trace, callback_handler = langfuse_handler.get_callback_handler()
     graph_config = {
         "configurable": {"thread_id": conversation_id},
-        "callbacks": [callback_handler],
+        # "callbacks": [callback_handler],
     }
     return StreamingResponse(
         status_code=status.HTTP_200_OK,
@@ -52,11 +52,11 @@ async def chat(
     thread_id: str = Header(),
     graph: CompiledStateGraph = Depends(get_compiled_graph),
 ):
-    langfuse_handler = LangfuseHandler()
-    trace, callback_handler = langfuse_handler.get_callback_handler()
+    # langfuse_handler = LangfuseHandler()
+    # trace, callback_handler = langfuse_handler.get_callback_handler()
     graph_config = {
         "configurable": {"thread_id": thread_id},
-        "callbacks": [callback_handler],
+        # "callbacks": [callback_handler],
     }
 
     return StreamingResponse(

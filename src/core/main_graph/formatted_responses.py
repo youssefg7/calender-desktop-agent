@@ -8,3 +8,4 @@ class ValidatorDecision(BaseModel):
 
 class MainAgentResponse(BaseModel):
     response: str = Field(..., description="Response to user message")
+    events: list[dict] = Field(..., description="List of affected events to be displayed to the user after any tool calls")

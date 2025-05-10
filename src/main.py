@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from database import LangfuseHandler, get_redis_saver
 from core.main_graph import compile_graph
-
+from langgraph.checkpoint.memory import InMemorySaver
 from routes.v1 import base, chat
 
 
@@ -14,9 +14,13 @@ from routes.v1 import base, chat
 async def lifespan(app: FastAPI):
     try:
         langfuse = LangfuseHandler()
-        async for checkpoiner in get_redis_saver():
-            compile_graph(checkpointer=checkpoiner)
+        # don't use redis for now
+        while True:
+            compile_graph(checkpointer=InMemorySaver())
             yield
+        # async for checkpoiner in get_redis_saver():
+        # compile_graph(checkpointer=InMemorySaver())
+            # yield
     finally:
         langfuse.flush()
 

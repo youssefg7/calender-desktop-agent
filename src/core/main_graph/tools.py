@@ -5,6 +5,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import os
+import orjson
 import pickle
 from langgraph.types import StreamWriter
 
@@ -153,10 +154,11 @@ def get_all_events_tool(
     events = events_result.get('items', [])
     if not events:
         return 'No upcoming events.'
-    return '\n'.join([
-        f"{event.get('summary', 'No Title')} ({event['start'].get('dateTime', event['start'].get('date'))} - {event['end'].get('dateTime', event['end'].get('date'))}) - ID: {event['id']}"
-        for event in events
-    ])
+    return events
+    # return '\n'.join([
+    #     f"{event.get('summary', 'No Title')} ({event['start'].get('dateTime', event['start'].get('date'))} - {event['end'].get('dateTime', event['end'].get('date'))}) - ID: {event['id']}"
+    #     for event in events
+    # ])
 
 def reorder_events_tool():
     """

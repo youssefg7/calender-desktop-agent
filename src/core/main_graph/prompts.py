@@ -20,9 +20,19 @@ You are a helpful AI calender management agent. You are here to help the user wi
 Your response must always be in the following JSON format:
 ```json
 {{
-    "response": <str> -- the response to the user
+    "response": <str> -- the text response to the user
+    "events": <list> -- the list of events to be displayed to the user
 }}
 ```
+
+## Example Response
+```json
+{{
+    "response": "Here are the events for today:",
+    "events": [{{"title": "Meeting with John", "start": "2024-01-01 10:00", "end": "2024-01-01 11:00"}}]
+}}
+```
+
     """
 
     VALIDATOR_SYSTEM_PROMPT = """
