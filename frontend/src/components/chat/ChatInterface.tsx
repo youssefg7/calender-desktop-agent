@@ -1,10 +1,24 @@
-import { Box, Flex, Text, Spinner, Heading, IconButton } from "@chakra-ui/react";
+import { Box, Flex, Text, Spinner, Heading, IconButton, Icon } from "@chakra-ui/react";
 import { Divider } from "@chakra-ui/layout";
 import { useState, useRef, useEffect } from "react";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiCalendar, FiPlus, FiEdit, FiTrash2, FiCheck } from "react-icons/fi";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { addRequestToCalendar } from "../layout/LeftSidebar";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface EventMetadata {
+  title: string;
+  start: string;
+  end: string;
+  attendees: string[];
+  event_id?: string;
+}
+
+interface CalendarEvent {
+  type: "new" | "existing" | "edited" | "deleted";
+  metadata: EventMetadata;
+}
 
 interface Message {
   content: string;
@@ -12,6 +26,7 @@ interface Message {
   isNew?: boolean;
   thinkingProcess?: string | null;
   isThinkingExpanded?: boolean;
+  events?: CalendarEvent[];
 }
 
 interface ChatSession {
@@ -23,6 +38,114 @@ interface ChatInterfaceProps {
   activeRequestId: string | null;
   selectedCalendarId: string | null;
   onAddNewRequest?: (requestId: string, calendarId: string) => void;
+}
+
+interface EventCardProps {
+  event: CalendarEvent;
+}
+
+const MotionBox = motion(Box);
+
+function EventCard({ event }: EventCardProps) {
+  const getEventTypeColor = () => {
+    switch (event.type) {
+      case "new":
+        return "blue.100";
+      case "existing":
+        return "green.100";
+      case "edited":
+        return "yellow.100";
+      case "deleted":
+        return "red.100";
+      default:
+        return "gray.100";
+    }
+  };
+
+  const getEventTypeIcon = () => {
+    switch (event.type) {
+      case "new":
+        return <Icon as={FiPlus} color="blue.600" boxSize="1em" />;
+      case "existing":
+        return <Icon as={FiCheck} color="green.600" boxSize="1em" />;
+      case "edited":
+        return <Icon as={FiEdit} color="yellow.600" boxSize="1em" />;
+      case "deleted":
+        return <Icon as={FiTrash2} color="red.600" boxSize="1em" />;
+      default:
+        return <Icon as={FiCalendar} color="gray.600" boxSize="1em" />;
+    }
+  };
+
+  const getEventTypeBorderColor = () => {
+    switch (event.type) {
+      case "new":
+        return "blue.300";
+      case "existing":
+        return "green.300";
+      case "edited":
+        return "yellow.300";
+      case "deleted":
+        return "red.300";
+      default:
+        return "gray.300";
+    }
+  };
+
+  const formatDateTime = (dateTimeStr: string) => {
+    try {
+      const date = new Date(dateTimeStr);
+      return date.toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateTimeStr;
+    }
+  };
+
+  const hasAttendees = event.metadata.attendees && event.metadata.attendees.length > 0;
+
+  return (
+    <Box
+      bg={getEventTypeColor()}
+      borderRadius="md"
+      p={3}
+      mb={2}
+      border="1px solid"
+      borderColor={getEventTypeBorderColor()}
+      boxShadow="sm"
+      userSelect="text"
+      color="black"
+    >
+      <Flex align="center" gap={2}>
+        {getEventTypeIcon()}
+        <Text fontWeight="bold" fontSize="sm" color="black">
+          {event.metadata.title}
+        </Text>
+      </Flex>
+
+      <Text fontSize="xs" mt={1} color="black">
+        {formatDateTime(event.metadata.start)} - {formatDateTime(event.metadata.end)}
+      </Text>
+
+      {hasAttendees && (
+        <Box mt={2} pt={2} borderTop="1px solid" borderColor={getEventTypeBorderColor() + "80"}>
+          <Text fontSize="xs" fontWeight="medium" color="black">
+            Attendees:
+          </Text>
+          {event.metadata.attendees.map((attendee: string, i: number) => (
+            <Text key={i} fontSize="xs" ml={2} color="black">
+              {attendee}
+            </Text>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
 }
 
 export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewRequest = () => {} }: ChatInterfaceProps) {
@@ -104,16 +227,19 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
     isFirstLoad.current = false;
   }, [currentSession?.messages]);
 
-  const parseMessage = (message: string): string => {
+  const parseMessage = (message: string): { response: string; events?: CalendarEvent[] } => {
     try {
       const cleanMessage = message
         .replace(/^```json\s*/, "")
         .replace(/```$/, "")
         .trim();
       const jsonData = JSON.parse(cleanMessage);
-      return jsonData.response || message;
+      return {
+        response: jsonData.response || message,
+        events: jsonData.events || [],
+      };
     } catch {
-      return message;
+      return { response: message };
     }
   };
 
@@ -238,7 +364,7 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                       // Update this message with the thinking process
                       messages[i] = {
                         ...messages[i],
-                        thinkingProcess: parsedMessage,
+                        thinkingProcess: parsedMessage.response,
                         isThinkingExpanded: true, // Start expanded
                       };
                       break;
@@ -264,6 +390,8 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     isThinkingExpanded: false,
                   }));
 
+                  const parsedData = parseMessage(data.message);
+
                   return {
                     ...prev,
                     [requestId]: {
@@ -271,9 +399,10 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                       messages: [
                         ...collapsedMessages,
                         {
-                          content: parseMessage(data.message),
+                          content: parsedData.response,
                           isUser: false,
                           isNew: true,
+                          events: parsedData.events,
                         },
                       ],
                     },
@@ -323,7 +452,7 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                       // Update this message with the thinking process
                       messages[i] = {
                         ...messages[i],
-                        thinkingProcess: parsedMessage,
+                        thinkingProcess: parsedMessage.response,
                         isThinkingExpanded: true, // Start expanded
                       };
                       break;
@@ -349,6 +478,8 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                     isThinkingExpanded: false,
                   }));
 
+                  const parsedData = parseMessage(data.message);
+
                   return {
                     ...prev,
                     [requestId]: {
@@ -356,9 +487,10 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
                       messages: [
                         ...collapsedMessages,
                         {
-                          content: parseMessage(data.message),
+                          content: parsedData.response,
                           isUser: false,
                           isNew: true,
+                          events: parsedData.events,
                         },
                       ],
                     },
@@ -414,85 +546,113 @@ export function ChatInterface({ activeRequestId, selectedCalendarId, onAddNewReq
 
     for (let i = 0; i < currentSession.messages.length; i++) {
       const message = currentSession.messages[i];
-
       // Add the user message
-      result.push(
-        <ChatMessage key={`msg-${i}`} content={message.content} isUser={message.isUser} isNew={!isFirstLoad.current && message.isNew} />
-      );
+      if (message.isUser) {
+        result.push(<ChatMessage key={`msg-${i}`} content={message.content} isUser={true} isNew={!isFirstLoad.current && message.isNew} />);
 
-      // If this is a user message and there's a next message that's not a user (i.e., agent response)
-      // and there's a thinking process, show the thinking process before the agent's response
-      if (message.isUser && message.thinkingProcess) {
-        const showThinking = message.isThinkingExpanded ?? false;
+        // If this is a user message and has thinking process, show it
+        if (message.thinkingProcess) {
+          const showThinking = message.isThinkingExpanded ?? false;
 
-        result.push(
-          <Flex key={`thinking-${i}`} justify="flex-start" mb={1} w="100%">
-            <Box
-              maxW="75%"
-              bg="gray.800"
-              color="gray.100"
-              p={2}
-              pl={3}
-              borderRadius="md"
-              boxShadow="sm"
-              border="1px solid"
-              borderColor="gray.700"
-              fontSize="xs"
-              ml={4}
-              mt={-1}
-            >
-              <Flex justify="space-between" align="center">
-                <Flex align="center">
-                  {isLoading && i === currentSession.messages.length - 1 && <Spinner size="xs" color="blue.400" mr={2} />}
-                  <Heading size="xs" color="blue.300" fontSize="xs">
-                    Agent Thought Process
-                  </Heading>
+          result.push(
+            <Flex key={`thinking-${i}`} justify="flex-start" mb={1} w="100%">
+              <Box
+                maxW="75%"
+                bg="gray.800"
+                color="gray.100"
+                p={2}
+                pl={3}
+                borderRadius="md"
+                boxShadow="sm"
+                border="1px solid"
+                borderColor="gray.700"
+                fontSize="xs"
+                ml={4}
+                mt={-1}
+              >
+                <Flex justify="space-between" align="center">
+                  <Flex align="center">
+                    {isLoading && i === currentSession.messages.length - 1 && <Spinner size="xs" color="blue.400" mr={2} />}
+                    <Heading size="xs" color="blue.300" fontSize="xs">
+                      Agent Thought Process
+                    </Heading>
+                  </Flex>
+                  <IconButton
+                    aria-label={showThinking ? "Collapse thinking" : "Expand thinking"}
+                    size="2xs"
+                    minW="16px"
+                    height="16px"
+                    p="0"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    color="white"
+                    onClick={() => {
+                      setChatSessions((prev) => {
+                        const currentSession = prev[currentRequestId!];
+                        if (!currentSession) return prev;
+
+                        const messages = [...currentSession.messages];
+                        messages[i] = {
+                          ...messages[i],
+                          isThinkingExpanded: !showThinking,
+                        };
+
+                        return {
+                          ...prev,
+                          [currentRequestId!]: {
+                            ...currentSession,
+                            messages,
+                          },
+                        };
+                      });
+                    }}
+                  >
+                    {showThinking ? <FiChevronUp size="0.6em" /> : <FiChevronDown size="0.6em" />}
+                  </IconButton>
                 </Flex>
-                <IconButton
-                  aria-label={showThinking ? "Collapse thinking" : "Expand thinking"}
-                  size="2xs"
-                  minW="16px"
-                  height="16px"
-                  p="0"
-                  variant="ghost"
-                  colorScheme="whiteAlpha"
-                  color="white"
-                  onClick={() => {
-                    setChatSessions((prev) => {
-                      const currentSession = prev[currentRequestId!];
-                      if (!currentSession) return prev;
 
-                      const messages = [...currentSession.messages];
-                      messages[i] = {
-                        ...messages[i],
-                        isThinkingExpanded: !showThinking,
-                      };
-
-                      return {
-                        ...prev,
-                        [currentRequestId!]: {
-                          ...currentSession,
-                          messages,
-                        },
-                      };
-                    });
-                  }}
-                >
-                  {showThinking ? <FiChevronUp size="0.6em" /> : <FiChevronDown size="0.6em" />}
-                </IconButton>
-              </Flex>
-
-              {showThinking && (
-                <>
-                  <Divider borderColor="gray.700" my={1} />
-                  <Text fontSize="xs" lineHeight="1.4">
-                    {message.thinkingProcess}
-                  </Text>
-                </>
-              )}
-            </Box>
-          </Flex>
+                {showThinking && (
+                  <>
+                    <Divider borderColor="gray.700" my={1} />
+                    <Text fontSize="xs" lineHeight="1.4">
+                      {message.thinkingProcess}
+                    </Text>
+                  </>
+                )}
+              </Box>
+            </Flex>
+          );
+        }
+      }
+      // For agent messages
+      else {
+        // First add the agent message
+        result.push(
+          <ChatMessage key={`msg-${i}`} content={message.content} isUser={false} isNew={!isFirstLoad.current && message.isNew} />
         );
+
+        // Then add events after the agent message with animation
+        if (message.events && message.events.length > 0) {
+          result.push(
+            <Flex key={`events-${i}`} direction="column" ml={4} mt={2} mb={3}>
+              <Text fontSize="xs" fontWeight="medium" color="gray.500" mb={1}>
+                Event Information:
+              </Text>
+              <AnimatePresence>
+                {message.events.map((event, eventIndex) => (
+                  <MotionBox
+                    key={`event-${i}-${eventIndex}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: eventIndex * 0.2 }}
+                  >
+                    <EventCard event={event} />
+                  </MotionBox>
+                ))}
+              </AnimatePresence>
+            </Flex>
+          );
+        }
       }
     }
 

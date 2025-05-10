@@ -1,12 +1,15 @@
-import { Text } from "@chakra-ui/react";
+import { Text, Box } from "@chakra-ui/react";
 import { useState, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface StreamingTextProps {
   text: string;
   onComplete?: () => void;
+  renderMarkdown?: boolean;
 }
 
-export function StreamingText({ text, onComplete }: StreamingTextProps) {
+export function StreamingText({ text, onComplete, renderMarkdown = false }: StreamingTextProps) {
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
@@ -26,11 +29,14 @@ export function StreamingText({ text, onComplete }: StreamingTextProps) {
       () => {
         if (index >= tokens.length) {
           clearInterval(interval);
-          // Add a 3-second delay before marking as not typing
-          setTimeout(() => {
-            setIsTyping(false);
-            onComplete?.();
-          }, 3000);
+          // Add a shorter delay for markdown rendering
+          setTimeout(
+            () => {
+              setIsTyping(false);
+              onComplete?.();
+            },
+            renderMarkdown ? 1000 : 3000
+          );
           return;
         }
 
@@ -43,7 +49,7 @@ export function StreamingText({ text, onComplete }: StreamingTextProps) {
     );
 
     return () => clearInterval(interval);
-  }, [text, onComplete]);
+  }, [text, onComplete, renderMarkdown]);
 
   useEffect(() => {
     const cleanup = streamText();
@@ -53,13 +59,26 @@ export function StreamingText({ text, onComplete }: StreamingTextProps) {
   }, [streamText]);
 
   return (
-    <Text fontSize="lg" lineHeight="tall">
-      {displayedText}
-      {isTyping && (
-        <Text as="span" color="blue.400" fontWeight="bold" animation="blink 1s step-end infinite">
-          |
+    <>
+      {renderMarkdown ? (
+        <Box className="markdown-content" fontSize="md" lineHeight="tall">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayedText}</ReactMarkdown>
+          {isTyping && (
+            <Text as="span" color="blue.400" fontWeight="bold" animation="blink 1s step-end infinite">
+              |
+            </Text>
+          )}
+        </Box>
+      ) : (
+        <Text fontSize="lg" lineHeight="tall">
+          {displayedText}
+          {isTyping && (
+            <Text as="span" color="blue.400" fontWeight="bold" animation="blink 1s step-end infinite">
+              |
+            </Text>
+          )}
         </Text>
       )}
-    </Text>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { useColorModeValue } from "@chakra-ui/system";
 import { StreamingText } from "./StreamingText";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   content: string;
@@ -29,11 +31,11 @@ export function ChatMessage({ content, isUser, isNew = false }: ChatMessageProps
             {content}
           </Text>
         ) : isNew ? (
-          <StreamingText text={content} />
+          <StreamingText text={content} renderMarkdown={true} />
         ) : (
-          <Text fontSize="md" lineHeight="tall">
-            {content}
-          </Text>
+          <Box className="markdown-content" fontSize="md" lineHeight="tall">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          </Box>
         )}
       </Box>
     </Flex>

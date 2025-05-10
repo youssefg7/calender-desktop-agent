@@ -114,6 +114,7 @@ async def generate_response(final_state: StateSnapshot) -> AsyncGenerator[str, N
         "op": "final_generated",
         "message": final_state.values["main_agent_messages"][-1].content,
     }
+    print(response)
     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
 
