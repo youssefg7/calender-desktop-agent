@@ -23,7 +23,7 @@ builder = StateGraph(state_schema=OverallState,
                      input=InputState, output=OutputState)
 
 # Nodes
-builder.add_node("validator_agent", validator_agent)
+# builder.add_node("validator_agent", validator_agent)
 builder.add_node("main_agent", main_agent)
 builder.add_node("tools", ToolNode([
 create_event_tool, 
@@ -35,15 +35,15 @@ create_event_tool,
     ], messages_key="main_agent_messages"))
 
 # Edges
-builder.add_edge(START, "validator_agent")
-builder.add_conditional_edges(
-    "validator_agent",
-    continue_with_validator_decision,
-    {
-        True: "main_agent",
-        False: END,
-    },
-)
+builder.add_edge(START, "main_agent")
+# builder.add_conditional_edges(
+#     "validator_agent",
+#     continue_with_validator_decision,
+#     {
+#         True: "main_agent",
+#         False: END,
+#     },
+# )
 builder.add_conditional_edges(
     "main_agent", 
     continue_with_tool_call, 
