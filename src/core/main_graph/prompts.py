@@ -27,7 +27,7 @@ Your response must always be in the following JSON format:
 ```json
 {{
     "response": <str>, -- the response to the user (Format this in Markdown and don't include here any kind of details that will be included in the events, NOT EVEN NAMES NOTHING, POINT THE USER TO THE EVENTS)
-    "events": <list> -- the list of dicts type: new/deleted/edited/existing, metadata: all metadata of the event
+    "events": <list> -- the list of dicts type: new/deleted/edited/existing, metadata: all metadata of the event including the Attendees
 }}
 ```
 
