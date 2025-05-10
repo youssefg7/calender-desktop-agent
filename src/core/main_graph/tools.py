@@ -11,6 +11,7 @@ from langgraph.types import StreamWriter
 # ---- Helper to get Google Calendar service for the user ----
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
+PEOPLE_SCOPES = ['https://www.googleapis.com/auth/contacts.readonly']
 
 
 def get_user_calendar_service():
@@ -35,6 +36,27 @@ def get_user_calendar_service():
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
     service = build('calendar', 'v3', credentials=creds)
+    return service
+
+def get_user_people_service():
+    """
+    Returns an authorized Google People API service instance for the user using OAuth2.
+    Requires client_secret.json in the working directory.
+    """
+    creds = None
+    if os.path.exists('token_people.pickle'):
+        with open('token_people.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'assets/OAuth Client ID mcp-test.json', PEOPLE_SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token_people.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    service = build('people', 'v1', credentials=creds)
     return service
 
 # ---- Tool Functions ----
@@ -164,5 +186,31 @@ def reorder_events_tool():
     This is a placeholder.
     """
     return "Reordering events is not supported by Google Calendar API. Events are always sorted by start time."
+
+def search_contacts_by_name_tool(name: str):
+    """
+    Search Google Contacts by name using the People API.
+    Returns a list of matching contacts' names and emails.
+    """
+    service = get_user_people_service()
+    results = service.people().connections().list(
+        resourceName='people/me',
+        pageSize=20,
+        personFields='names,emailAddresses',
+        requestMask_includeField='person.names,person.emailAddresses'
+    ).execute()
+    connections = results.get('connections', [])
+    matches = []
+    for person in connections:
+        names = person.get('names', [])
+        emails = person.get('emailAddresses', [])
+        if names and emails:
+            display_name = names[0].get('displayName', '')
+            email = emails[0].get('value', '')
+            if name.lower() in display_name.lower():
+                matches.append(f"{display_name} <{email}>")
+    if not matches:
+        return f"No contacts found matching '{name}'."
+    return '\n'.join(matches)
 
 

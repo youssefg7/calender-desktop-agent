@@ -5,7 +5,7 @@ from core.llm_factories import get_llm_model
 from .formatted_responses import ValidatorDecision, MainAgentResponse
 import orjson
 from datetime import datetime
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool, edit_event_tool
+from .tools import create_event_tool, delete_event_tool, get_all_events_tool, reorder_events_tool, edit_event_tool, search_contacts_by_name_tool
 from langchain_core.output_parsers import PydanticOutputParser
 
 async def validator_agent(state: OverallState):
@@ -61,7 +61,8 @@ async def main_agent(state: OverallState):
                 delete_event_tool,
                 get_all_events_tool, 
                 # reorder_events_tool,
-                edit_event_tool
+                edit_event_tool,
+                search_contacts_by_name_tool
                 ])
     output: AIMessage = await llm_with_tools.ainvoke(messages)
     messages.append(output)
