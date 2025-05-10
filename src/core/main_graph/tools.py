@@ -129,7 +129,10 @@ def create_event_tool(
         body=event,
         sendUpdates='all' if attendees else 'none'
     ).execute()
-    return f"Event created successfully.\n\n{orjson.dumps(created_event, option=orjson.OPT_INDENT_2)}"
+    return_message = f"Event created successfully.\n\n{orjson.dumps(created_event, option=orjson.OPT_INDENT_2)}"
+    if attendees:
+        return_message += f"\n\nSent email to attendees: {orjson.dumps(created_event['attendees'], option=orjson.OPT_INDENT_2)}"
+    return return_message
 
 @tool(parse_docstring=True)
 def delete_event_tool(
@@ -192,7 +195,7 @@ def edit_event_tool(
     ).execute()
     return_message = f"Event updated successfully: {orjson.dumps(result, option=orjson.OPT_INDENT_2)}"
     if 'attendees' in changes:
-        return_message += f"\n\nSent email to attendees: {orjson.dumps(result['attendees'], option=orjson.OPT_INDENT_2)}"
+        return_message += f"\n\nSent email to attendees: {result['attendees']}"
     return return_message
 
 @tool(parse_docstring=True)
