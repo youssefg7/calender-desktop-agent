@@ -131,7 +131,7 @@ async def followup_graph(
     async for update in graph.astream(
         input=InputState(user_message=user_input), config=graph_config, stream_mode=["custom"]
     ):
-        response = {"op": "info", "message": update[2]}
+        response = {"op": "info", "message": update[1]}
         if response:
             yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
