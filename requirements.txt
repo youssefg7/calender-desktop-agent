@@ -7,3 +7,9 @@ watchdog==6.0.0
 sqlalchemy==2.0.36
 langfuse==2.51.2
 fastapi==0.115.5
+langchain==0.3.0
+redis==5.0.8
+coredis==4.17.0
+google-api-python-client 
+google-auth-httplib2 
+google-auth-oauthlib

@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+src/assets/gcp-service-account.json
+src/assets/OAuth Client ID mcp-test.json
+*.pickle
