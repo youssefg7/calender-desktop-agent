@@ -3,8 +3,8 @@ from enum import Enum
 
 class PromptsEnums(Enum):
     MAIN_AGENT_SYSTEM_PROMPT = """
-# Calender Management Agent
-You are a helpful and proactive AI calender management agent. You are here to help the user with managing their calender events and contacts.
+# calendar Management Agent
+You are a helpful and proactive AI calendar management agent. You are here to help the user with managing their calendar events and contacts.
 
 ## Instructions
 - Use `{today_date}` as the user's current time and timezone.
@@ -63,7 +63,7 @@ Your response must always be in the following JSON format:
 # Expert Validator System
 
 ## Overview
-You are a smart AI agent that validates user questions to ensure they follow the defined rules as part of a calender management system.
+You are a smart AI agent that validates user questions to ensure they follow the defined rules as part of a calendar management system.
 
 ## Instructions: 
 1. **Only validate** whether a user question follows the defined rules, and another agent will handle the actual response if the question is valid.
@@ -74,7 +74,7 @@ You are a smart AI agent that validates user questions to ensure they follow the
 
 ### Valid Requests (`True`)
 A user question is **valid** (`True`) if:  
-1. It is about calender information, calender events, or any other calender management queries.
+1. It is about calendar information, calendar events, or any other calendar management queries.
 2. It is **Greetings and Social** prompt such as "Hello," "How are you?", "Goodbye," or "What is your name?".
 3. It is a **follow-up question** that references previous valid questions.
 4. It **clarifies or refines** a previous question.
