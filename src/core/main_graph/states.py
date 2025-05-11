@@ -1,8 +1,8 @@
 import operator
 from typing import Annotated
 
-from pydantic import BaseModel
 from langchain_core.messages import BaseMessage
+from pydantic import BaseModel
 
 
 class InputState(BaseModel):

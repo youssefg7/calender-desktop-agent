@@ -1,7 +1,6 @@
 from fastapi import APIRouter, status
 from fastapi.responses import ORJSONResponse
 
-
 base_router = APIRouter(
     prefix="/api/v1",
     tags=["api_v1"],

@@ -1,17 +1,15 @@
+import uuid
 from typing import AsyncGenerator
 
 import orjson
 from fastapi import APIRouter, Depends, Header, status
 from fastapi.responses import ORJSONResponse, StreamingResponse
-
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
-import uuid
+
 from core.main_graph import get_compiled_graph
 from core.main_graph.states import InputState
-from database import (
-    LangfuseHandler,
-)
+from database import LangfuseHandler
 from helpers import get_settings
 
 app_settings = get_settings()

@@ -1,7 +1,8 @@
 from langchain_core.embeddings import Embeddings
-from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_openai.chat_models import ChatOpenAI
+from langchain_openai.embeddings import OpenAIEmbeddings
+
 from helpers import get_settings
 
 app_settings = get_settings()

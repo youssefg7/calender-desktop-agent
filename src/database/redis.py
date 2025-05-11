@@ -4,15 +4,10 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator, AsyncIterator, List, Optional, Tuple
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.base import (
-    BaseCheckpointSaver,
-    ChannelVersions,
-    Checkpoint,
-    CheckpointMetadata,
-    CheckpointTuple,
-    PendingWrite,
-    get_checkpoint_id,
-)
+from langgraph.checkpoint.base import (BaseCheckpointSaver, ChannelVersions,
+                                       Checkpoint, CheckpointMetadata,
+                                       CheckpointTuple, PendingWrite,
+                                       get_checkpoint_id)
 from langgraph.checkpoint.serde.base import SerializerProtocol
 from redis.asyncio import Redis as AsyncRedis
 

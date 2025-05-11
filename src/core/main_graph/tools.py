@@ -1,16 +1,14 @@
-from typing import List, Optional
-from datetime import datetime, timezone
-
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 import os
-import orjson
 import pickle
-from langchain_core.tools import tool
-import orjson
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
-from typing import Tuple
+from typing import List, Optional, Tuple
+
+import orjson
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from langchain_core.tools import tool
 
 # ---- Helper to get Google Calendar service for the user ----
 

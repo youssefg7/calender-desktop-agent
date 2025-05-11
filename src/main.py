@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
-from database import LangfuseHandler, get_redis_saver
-from core.main_graph import compile_graph
 
+from core.main_graph import compile_graph
+from database import LangfuseHandler, get_redis_saver
 from routes.v1 import base, chat
 
 
