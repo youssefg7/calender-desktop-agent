@@ -9,7 +9,6 @@ class InputState(BaseModel):
     user_message: str
 
 
-
 class OverallState(BaseModel):
     user_message: str
     main_agent_messages: Annotated[list[BaseMessage], operator.add] = []

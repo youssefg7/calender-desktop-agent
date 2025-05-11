@@ -9,7 +9,14 @@ from .conditional_edges import continue_with_validator_decision, continue_with_t
 from .states import InputState, OutputState, OverallState
 from .agents import validator_agent, main_agent
 from langgraph.prebuilt import ToolNode
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_similar_contacts_tool, get_calendar_invitations_tool
+from .tools import (
+    create_event_tool,
+    delete_event_tool,
+    get_all_events_tool,
+    edit_event_tool,
+    find_similar_contacts_tool,
+    get_calendar_invitations_tool,
+)
 import os
 import time
 import asyncio
@@ -19,20 +26,25 @@ from database import get_redis_saver
 app_settings = get_settings()
 
 
-builder = StateGraph(state_schema=OverallState,
-                     input=InputState, output=OutputState)
+builder = StateGraph(state_schema=OverallState, input=InputState, output=OutputState)
 
 # Nodes
 # builder.add_node("validator_agent", validator_agent)
 builder.add_node("main_agent", main_agent)
-builder.add_node("tools", ToolNode([
-create_event_tool, 
-                delete_event_tool,
-                get_all_events_tool, 
-                edit_event_tool,
-                find_similar_contacts_tool,
-                get_calendar_invitations_tool,
-    ], messages_key="main_agent_messages"))
+builder.add_node(
+    "tools",
+    ToolNode(
+        [
+            create_event_tool,
+            delete_event_tool,
+            get_all_events_tool,
+            edit_event_tool,
+            find_similar_contacts_tool,
+            get_calendar_invitations_tool,
+        ],
+        messages_key="main_agent_messages",
+    ),
+)
 
 # Edges
 builder.add_edge(START, "main_agent")
@@ -45,12 +57,7 @@ builder.add_edge(START, "main_agent")
 #     },
 # )
 builder.add_conditional_edges(
-    "main_agent", 
-    continue_with_tool_call, 
-    {
-        "TOOL": "tools", 
-        "NO_TOOL": END
-    }
+    "main_agent", continue_with_tool_call, {"TOOL": "tools", "NO_TOOL": END}
 )
 builder.add_edge("tools", "main_agent")
 
@@ -112,8 +119,7 @@ async def main():
             pass
 
         while True:
-            is_satisfied = input(
-                "Is this the data needed for the report? (Y/N): ")
+            is_satisfied = input("Is this the data needed for the report? (Y/N): ")
             if is_satisfied == "Y":
                 state = graph.get_state(config=GRAPH_CONFIG, subgraphs=True)
                 graph.update_state(

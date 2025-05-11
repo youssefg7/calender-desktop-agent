@@ -5,8 +5,16 @@ from core.llm_factories import get_llm_model
 from .formatted_responses import ValidatorDecision, MainAgentResponse
 import orjson
 from datetime import datetime
-from .tools import create_event_tool, delete_event_tool, get_all_events_tool, edit_event_tool, find_similar_contacts_tool, get_calendar_invitations_tool
+from .tools import (
+    create_event_tool,
+    delete_event_tool,
+    get_all_events_tool,
+    edit_event_tool,
+    find_similar_contacts_tool,
+    get_calendar_invitations_tool,
+)
 from langchain_core.output_parsers import PydanticOutputParser
+
 
 async def validator_agent(state: OverallState):
     if state.validator_messages == []:
@@ -18,7 +26,7 @@ async def validator_agent(state: OverallState):
         messages = state.validator_messages
 
     messages.append(HumanMessage(content=state.user_message))
-    
+
     llm = get_llm_model()
     output = await llm.with_structured_output(
         schema=ValidatorDecision, include_raw=True, strict=True
@@ -39,18 +47,23 @@ async def validator_agent(state: OverallState):
         "response": parsed.response,
     }
 
+
 async def main_agent(state: OverallState):
     if state.main_agent_messages == []:
         system_prompt = SystemMessage(
-            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(today_date=datetime.now().astimezone().isoformat())
+            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(
+                today_date=datetime.now().astimezone().isoformat()
+            )
         )
         messages = [system_prompt]
     else:
         messages = state.main_agent_messages
         messages[0] = SystemMessage(
-            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(today_date=datetime.now().astimezone().isoformat())
+            content=PromptsEnums.MAIN_AGENT_SYSTEM_PROMPT.value.strip().format(
+                today_date=datetime.now().astimezone().isoformat()
+            )
         )
-    
+
     messages.append(
         HumanMessage(
             content=state.user_message
@@ -59,16 +72,17 @@ async def main_agent(state: OverallState):
     )
 
     llm = get_llm_model()
-    llm_with_tools = llm.bind_tools([
-                create_event_tool, 
-                delete_event_tool,
-                get_all_events_tool, 
-                edit_event_tool,
-                # find_free_time_tool,
-                find_similar_contacts_tool,
-                get_calendar_invitations_tool,
-                ],
-                )
+    llm_with_tools = llm.bind_tools(
+        [
+            create_event_tool,
+            delete_event_tool,
+            get_all_events_tool,
+            edit_event_tool,
+            # find_free_time_tool,
+            find_similar_contacts_tool,
+            get_calendar_invitations_tool,
+        ],
+    )
     output: AIMessage = await llm_with_tools.ainvoke(messages)
     messages.append(output)
     if not output.tool_calls:
@@ -82,7 +96,5 @@ async def main_agent(state: OverallState):
             messages if state.main_agent_messages == [] else messages[-2:]
         ),
         "response": parsed.response if not output.tool_calls else "",
-        "tool_calls_left": (
-            state.tool_calls_left - 1 if output.tool_calls else 5
-        ),
+        "tool_calls_left": (state.tool_calls_left - 1 if output.tool_calls else 5),
     }

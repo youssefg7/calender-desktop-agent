@@ -187,3 +187,4 @@ src/assets/OAuth Client ID mcp-test.json
 *.DS_Store
 
 frontend/node_modules/
+frontend/.vite/

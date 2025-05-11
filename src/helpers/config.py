@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     LANGFUSE_SK: str = ""
     LANGFUSE_HOST: str = ""
 
-
     model_config = ConfigDict(
         env_file=".env" if os.getenv("ENVIRONMENT") != "production" else None,
         extra="allow",

@@ -16,5 +16,3 @@ class QueryRequest(BaseSchema):
                 status_code=400, detail="Query text must be at least 2 characters long."
             )
         return value.strip()
-
-

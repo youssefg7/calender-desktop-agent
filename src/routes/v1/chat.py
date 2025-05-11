@@ -6,7 +6,7 @@ from fastapi.responses import ORJSONResponse, StreamingResponse
 
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
-import uuid 
+import uuid
 from core.main_graph import get_compiled_graph
 from core.main_graph.states import InputState
 from database import (
@@ -44,8 +44,8 @@ async def start_chat(
         ),
         media_type="text/event-stream",
     )
-    
-    
+
+
 @chat_router.post("/")
 async def chat(
     user_message: str,
@@ -68,14 +68,14 @@ async def chat(
         ),
         media_type="text/event-stream",
     )
-        
-        
+
+
 async def start_graph_execution(
     graph_config: dict,
     graph: CompiledStateGraph,
     user_message: str,
 ) -> AsyncGenerator[str, None]:
-    
+
     response = {
         "op": "trace_id",
         "trace_id": graph_config["configurable"]["thread_id"],
@@ -83,13 +83,11 @@ async def start_graph_execution(
     print(response)
     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
-    
     response = {
         "op": "info",
         "message": "Thinking...",
     }
     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
-
 
     async for update in graph.astream(
         input=InputState(user_message=user_message),
@@ -107,7 +105,8 @@ async def start_graph_execution(
     final_state = await graph.aget_state(config=graph_config)
     async for response in generate_response(final_state):
         yield response
-        
+
+
 # Extracts the response from the final state
 async def generate_response(final_state: StateSnapshot) -> AsyncGenerator[str, None]:
     response = {
@@ -129,7 +128,9 @@ async def followup_graph(
     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
     async for update in graph.astream(
-        input=InputState(user_message=user_input), config=graph_config, stream_mode=["custom"]
+        input=InputState(user_message=user_input),
+        config=graph_config,
+        stream_mode=["custom"],
     ):
         response = {"op": "info", "message": update[1]}
         if response:
