@@ -1,5 +1,5 @@
 import operator
-from typing import Annotated
+from typing import Annotated, List
 
 from pydantic import BaseModel
 from langchain_core.messages import BaseMessage
@@ -17,6 +17,7 @@ class OverallState(BaseModel):
     is_valid_user_input: bool = False
     response: str = None
     tool_calls_left: int = 5
+    contact_matches: List[dict] = []
 
 
 class OutputState(BaseModel):

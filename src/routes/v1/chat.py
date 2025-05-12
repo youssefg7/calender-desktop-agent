@@ -109,27 +109,43 @@ async def start_graph_execution(
         
 # Extracts the response from the final state
 async def generate_response(final_state: StateSnapshot) -> AsyncGenerator[str, None]:
-    # Follow-up question to the user
-    # if final_state.tasks:
-    #     print("there is a task")
-    #     if "ask_user_data" in final_state.next:
-    #         response = {
-    #             "op": "ask_user_data",
-    #             "message": final_state.values["user_data_messages"][-1].content,
-    #         }
-    #         yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
-    # else:
-    #     # print("no task")
-    #     # Final Report Generated
-    #     response = {
-    #         "op": "final_generated",
-    #         "message": final_state.values["main_agent_messages"][-1].content,
-    #     }
-    #     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
-    response = {
-        "op": "final_generated",
-        "message": final_state.values["main_agent_messages"][-1].content,
-    }
+    # Get the last message from the main agent
+    last_message = final_state.values["main_agent_messages"][-1].content if final_state.values["main_agent_messages"] else ""
+    
+    # Parse the message content as JSON
+    try:
+        message_content = orjson.loads(last_message)
+        response_type = "final_generated"
+        
+        # Check if this is a contact-related response
+        if "contact_matches" in message_content and message_content["contact_matches"]:
+            response_type = "contacts_response"
+        # Check if this is an event-related response
+        elif "events" in message_content and message_content["events"]:
+            response_type = "calendar_response"
+            
+        response = {
+            "op": response_type,
+            "message": message_content
+        }
+    except:
+        # If parsing fails, use the old logic
+        if "contacts" in last_message.lower() or "contact" in last_message.lower():
+            response = {
+                "op": "contacts_response",
+                "message": last_message,
+            }
+        elif "event" in last_message.lower() or "calendar" in last_message.lower():
+            response = {
+                "op": "calendar_response",
+                "message": last_message,
+            }
+        else:
+            response = {
+                "op": "final_generated",
+                "message": last_message,
+            }
+    
     yield f"data: {orjson.dumps(response).decode('utf-8')}\n\n"
 
 
